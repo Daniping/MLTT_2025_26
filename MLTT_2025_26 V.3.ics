@@ -66,113 +66,324 @@ DESCRIPTION:Match de la troisième journée de la saison.
 END:VEVENT
 
 BEGIN:VEVENT
+UID:mltt-2025-09-12-1@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20250912T160000Z
+DTEND:20250912T180000Z
+SUMMARY:Match 7 - Bay Area Blasters vs Texas Smash
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Match de la quatrième journée de la saison.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-09-12-2@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20250912T193000Z
+DTEND:20250912T213000Z
+SUMMARY:Match 8 - Florida Crocs vs Portland Paddlers
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Match de la quatrième journée de la saison.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-09-13-1@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20250913T160000Z
+DTEND:20250913T180000Z
+SUMMARY:Match 9 - Bay Area Blasters vs Florida Crocs
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Match de la cinquième journée de la saison.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-09-13-2@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20250913T193000Z
+DTEND:20250913T213000Z
+SUMMARY:Match 10 - Portland Paddlers vs Texas Smash
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Match de la cinquième journée de la saison.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-09-19-1@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20250919T110000Z
+DTEND:20250919T130000Z
+SUMMARY:Match 11 - Bay Area Blasters vs Portland Paddlers
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Match de la sixième journée de la saison.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-09-19-2@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20250919T143000Z
+DTEND:20250919T163000Z
+SUMMARY:Match 12 - Florida Crocs vs Texas Smash
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Match de la sixième journée de la saison.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-09-20-1@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20250920T160000Z
+DTEND:20250920T180000Z
+SUMMARY:Match 13 - Bay Area Blasters vs Florida Crocs
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Match de la septième journée de la saison.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-09-20-2@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20250920T193000Z
+DTEND:20250920T213000Z
+SUMMARY:Match 14 - Portland Paddlers vs Texas Smash
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Match de la septième journée de la saison.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-09-21-1@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20250921T110000Z
+DTEND:20250921T130000Z
+SUMMARY:Match 15 - Bay Area Blasters vs Texas Smash
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Match de la huitième journée de la saison.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-09-21-2@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20250921T143000Z
+DTEND:20250921T163000Z
+SUMMARY:Match 16 - Portland Paddlers vs Florida Crocs
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Match de la huitième journée de la saison.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-09-26-1@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20250926T160000Z
+DTEND:20250926T180000Z
+SUMMARY:Match 17 - Bay Area Blasters vs Texas Smash
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Match de la neuvième journée de la saison.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-09-26-2@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20250926T193000Z
+DTEND:20250926T213000Z
+SUMMARY:Match 18 - Florida Crocs vs Portland Paddlers
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Match de la neuvième journée de la saison.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-09-27-1@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20250927T160000Z
+DTEND:20250927T180000Z
+SUMMARY:Match 19 - Bay Area Blasters vs Florida Crocs
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Match de la dixième journée de la saison.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-09-27-2@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20250927T193000Z
+DTEND:20250927T213000Z
+SUMMARY:Match 20 - Portland Paddlers vs Texas Smash
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Match de la dixième journée de la saison.
+END:VEVENT
+
+BEGIN:VEVENT
 UID:mltt-2025-10-03-1@mltt.com
-DTSTAMP:20250809T000000Z
+DTSTAMP:20230809T000000Z
 DTSTART:20251003T160000Z
 DTEND:20251003T180000Z
-SUMMARY:Match – 3 Oct 16h00 (S3 j1)
-LOCATION:St. Louis Union Station, St. Louis, MO
+SUMMARY:Match 21 - Bay Area Blasters vs Portland Paddlers
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Début du mois d’octobre, match 11.
 END:VEVENT
 
 BEGIN:VEVENT
 UID:mltt-2025-10-03-2@mltt.com
-DTSTAMP:20250809T000000Z
+DTSTAMP:20230809T000000Z
 DTSTART:20251003T193000Z
 DTEND:20251003T213000Z
-SUMMARY:Match – 3 Oct 19h30 (S3 j1)
-LOCATION:St. Louis Union Station, St. Louis, MO
+SUMMARY:Match 22 - Florida Crocs vs Texas Smash
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Suite des matchs d’octobre.
 END:VEVENT
 
 BEGIN:VEVENT
 UID:mltt-2025-10-04-1@mltt.com
-DTSTAMP:20250809T000000Z
+DTSTAMP:20230809T000000Z
 DTSTART:20251004T160000Z
 DTEND:20251004T180000Z
-SUMMARY:Match – 4 Oct 16h00 (S3 j2)
-LOCATION:St. Louis Union Station, St. Louis, MO
+SUMMARY:Match 23 - Bay Area Blasters vs Florida Crocs
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Deuxième journée d’octobre.
 END:VEVENT
 
 BEGIN:VEVENT
 UID:mltt-2025-10-04-2@mltt.com
-DTSTAMP:20250809T000000Z
+DTSTAMP:20230809T000000Z
 DTSTART:20251004T193000Z
 DTEND:20251004T213000Z
-SUMMARY:Match – 4 Oct 19h30 (S3 j2)
-LOCATION:St. Louis Union Station, St. Louis, MO
+SUMMARY:Match 24 - Portland Paddlers vs Texas Smash
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Deuxième journée d’octobre.
 END:VEVENT
 
 BEGIN:VEVENT
-UID:mltt-2025-10-05-1@mltt.com
-DTSTAMP:20250809T000000Z
-DTSTART:20251005T110000Z
-DTEND:20251005T130000Z
-SUMMARY:Match – 5 Oct 11h00 (S3 j3)
-LOCATION:St. Louis Union Station, St. Louis, MO
+UID:mltt-2025-10-10-1@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20251010T160000Z
+DTEND:20251010T180000Z
+SUMMARY:Match 25 - Bay Area Blasters vs Texas Smash
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Troisième journée d’octobre.
 END:VEVENT
 
 BEGIN:VEVENT
-UID:mltt-2025-10-05-2@mltt.com
-DTSTAMP:20250809T000000Z
-DTSTART:20251005T143000Z
-DTEND:20251005T163000Z
-SUMMARY:Match – 5 Oct 14h30 (S3 j3)
-LOCATION:St. Louis Union Station, St. Louis, MO
+UID:mltt-2025-10-10-2@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20251010T193000Z
+DTEND:20251010T213000Z
+SUMMARY:Match 26 - Portland Paddlers vs Florida Crocs
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Troisième journée d’octobre.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-10-11-1@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20251011T160000Z
+DTEND:20251011T180000Z
+SUMMARY:Match 27 - Bay Area Blasters vs Florida Crocs
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Quatrième journée d’octobre.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-10-11-2@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20251011T193000Z
+DTEND:20251011T213000Z
+SUMMARY:Match 28 - Portland Paddlers vs Texas Smash
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Quatrième journée d’octobre.
 END:VEVENT
 
 BEGIN:VEVENT
 UID:mltt-2025-10-17-1@mltt.com
-DTSTAMP:20250809T000000Z
-DTSTART:20251017T160000Z
-DTEND:20251017T180000Z
-SUMMARY:Match – 17 Oct 16h00 (S4 j1)
-LOCATION:Las Vegas Convention Center, Las Vegas, NV
+DTSTAMP:20230809T000000Z
+DTSTART:20251017T110000Z
+DTEND:20251017T130000Z
+SUMMARY:Match 29 - Bay Area Blasters vs Portland Paddlers
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Cinquième journée d’octobre.
 END:VEVENT
 
 BEGIN:VEVENT
 UID:mltt-2025-10-17-2@mltt.com
-DTSTAMP:20250809T000000Z
-DTSTART:20251017T193000Z
-DTEND:20251017T213000Z
-SUMMARY:Match – 17 Oct 19h30 (S4 j1)
-LOCATION:Las Vegas Convention Center, Las Vegas, NV
+DTSTAMP:20230809T000000Z
+DTSTART:20251017T143000Z
+DTEND:20251017T163000Z
+SUMMARY:Match 30 - Florida Crocs vs Texas Smash
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Cinquième journée d’octobre.
 END:VEVENT
 
 BEGIN:VEVENT
 UID:mltt-2025-10-18-1@mltt.com
-DTSTAMP:20250809T000000Z
+DTSTAMP:20230809T000000Z
 DTSTART:20251018T160000Z
 DTEND:20251018T180000Z
-SUMMARY:Match – 18 Oct 16h00 (S4 j2)
-LOCATION:Las Vegas Convention Center, Las Vegas, NV
+SUMMARY:Match 31 - Bay Area Blasters vs Florida Crocs
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Sixième journée d’octobre.
 END:VEVENT
 
 BEGIN:VEVENT
 UID:mltt-2025-10-18-2@mltt.com
-DTSTAMP:20250809T000000Z
+DTSTAMP:20230809T000000Z
 DTSTART:20251018T193000Z
 DTEND:20251018T213000Z
-SUMMARY:Match – 18 Oct 19h30 (S4 j2)
-LOCATION:Las Vegas Convention Center, Las Vegas, NV
+SUMMARY:Match 32 - Portland Paddlers vs Texas Smash
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Sixième journée d’octobre.
 END:VEVENT
 
 BEGIN:VEVENT
-UID:mltt-2025-10-19-1@mltt.com
-DTSTAMP:20250809T000000Z
-DTSTART:20251019T110000Z
-DTEND:20251019T130000Z
-SUMMARY:Match – 19 Oct 11h00 (S4 j3)
-LOCATION:Las Vegas Convention Center, Las Vegas, NV
+UID:mltt-2025-10-24-1@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20251024T160000Z
+DTEND:20251024T180000Z
+SUMMARY:Match 33 - Bay Area Blasters vs Texas Smash
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Septième journée d’octobre.
 END:VEVENT
 
 BEGIN:VEVENT
-UID:mltt-2025-10-19-2@mltt.com
-DTSTAMP:20250809T000000Z
-DTSTART:20251019T143000Z
-DTEND:20251019T163000Z
-SUMMARY:Match – 19 Oct 14h30 (S4 j3)
-LOCATION:Las Vegas Convention Center, Las Vegas, NV
+UID:mltt-2025-10-24-2@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20251024T193000Z
+DTEND:20251024T213000Z
+SUMMARY:Match 34 - Florida Crocs vs Portland Paddlers
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Septième journée d’octobre.
 END:VEVENT
 
+BEGIN:VEVENT
+UID:mltt-2025-10-25-1@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20251025T160000Z
+DTEND:20251025T180000Z
+SUMMARY:Match 35 - Bay Area Blasters vs Florida Crocs
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Huitième journée d’octobre.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-10-25-2@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20251025T193000Z
+DTEND:20251025T213000Z
+SUMMARY:Match 36 - Portland Paddlers vs Texas Smash
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Huitième journée d’octobre.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-10-31-1@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20251031T110000Z
+DTEND:20251031T130000Z
+SUMMARY:Match 37 - Bay Area Blasters vs Portland Paddlers
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Neuvième journée d’octobre.
+END:VEVENT
+
+BEGIN:VEVENT
+UID:mltt-2025-10-31-2@mltt.com
+DTSTAMP:20230809T000000Z
+DTSTART:20251031T143000Z
+DTEND:20251031T163000Z
+SUMMARY:Match 38 - Florida Crocs vs Texas Smash
+LOCATION:Alameda County Fairgrounds, Pleasanton, CA
+DESCRIPTION:Neuvième journée d’octobre.
+END:VEVENT
 BEGIN:VEVENT
 UID:mltt-2025-11-02-1@mltt.com
 DTSTAMP:20230809T000000Z
@@ -274,6 +485,7 @@ DESCRIPTION:Match MLTT du 23 novembre.
 END:VEVENT
 
 END:VCALENDAR
+
 
 
 

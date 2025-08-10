@@ -1,1 +1,36 @@
+name: Update MLTT Calendar
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Exécute chaque jour à minuit UTC
+  workflow_dispatch:  # Permet de lancer manuellement
+
+jobs:
+  update-calendar:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests beautifulsoup4 icalendar
+
+    - name: Run update script
+      run: python update_calendar.py
+
+    - name: Commit & push changes
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add mltt.ics
+        git diff --quiet && echo "No changes to commit" || git commit -m "Update MLTT calendar"
+        git push
 

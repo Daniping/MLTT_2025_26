@@ -1,3 +1,25 @@
-filtre_mois: 9  # septembre
-nom_fichier_ics: MLTT_2025_26_V4.ics
-timezone: US/Eastern
+name: Update MLTT Calendar
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Tous les jours à minuit UTC
+  workflow_dispatch:     # Permet un déclenchement manuel
+
+jobs:
+  update-calendar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4 icalendar pyyaml pytz
+
+      - name: Run the Python script
+        run: python generate_ics.py

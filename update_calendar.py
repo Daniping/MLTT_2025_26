@@ -1,65 +1,62 @@
 import requests
 from bs4 import BeautifulSoup
-from icalendar import Calendar, Event
 from datetime import datetime
-import pytz
-import subprocess
+from ics import Calendar, Event
 
-# URL de la page MLTT
-URL = "https://www.mltt.com/schedule"
-
-def fetch_matches():
-    response = requests.get(URL)
+def fetch_schedule(url="https://mltt.com/2025-26-major-league-table-tennis-season"):
+    response = requests.get(url)
     response.raise_for_status()
     soup = BeautifulSoup(response.text, "html.parser")
 
-    matches = []
-    # À adapter selon la structure HTML exacte de mltt.com
-    for match in soup.select(".match-card"):
-        date_str = match.select_one(".date").text.strip()
-        time_str = match.select_one(".time").text.strip()
-        teams = match.select_one(".teams").text.strip()
-        location = match.select_one(".location").text.strip()
+    schedule = []
 
-        # Conversion de la date et heure
-        dt_naive = datetime.strptime(f"{date_str} {time_str}", "%B %d, %Y %I:%M %p")
-        tz = pytz.timezone("US/Eastern")
-        dt_local = tz.localize(dt_naive)
+    weekends = soup.find_all("div", class_="weekend")
+    for weekend in weekends:
+        weekend_name = weekend.find("h2").get_text(strip=True)
 
-        matches.append({
-            "summary": teams,
-            "location": location,
-            "start": dt_local
-        })
-    return matches
+        sessions = weekend.find_all("div", class_="session")
+        for session in sessions:
+            session_location = session.find("span", class_="location")
+            session_location = session_location.get_text(strip=True) if session_location else "Lieu non spécifié"
 
-def generate_ics(matches):
+            matches = session.find_all("div", class_="match")
+            for match in matches:
+                time_str = match.find("span", class_="time").get_text(strip=True)
+
+                date_base_str = session.find("span", class_="date").get_text(strip=True)
+
+                try:
+                    date_only = datetime.strptime(date_base_str, "%b %d, %Y")
+                    time_obj = datetime.strptime(time_str, "%I:%M %p").time()
+                    datetime_match = datetime.combine(date_only, time_obj)
+                except Exception as e:
+                    print(f"Erreur parsing date/heure match : {date_base_str} {time_str} - {e}")
+                    continue
+
+                schedule.append({
+                    "weekend": weekend_name,
+                    "datetime": datetime_match,
+                    "location": session_location,
+                })
+
+    return schedule
+
+def create_ics(schedule, filename="mltt_schedule_with_matches.ics"):
     cal = Calendar()
-    cal.add("prodid", "-//MLTT Calendar//mltt.com//")
-    cal.add("version", "2.0")
 
-    for match in matches:
-        event = Event()
-        event.add("summary", match["summary"])
-        event.add("location", match["location"])
-        event.add("dtstart", match["start"])
-        event.add("dtend", match["start"] + timedelta(hours=2))
-        cal.add_component(event)
+    for item in schedule:
+        e = Event()
+        e.name = f"{item['weekend']} - Match"
+        e.begin = item["datetime"]
+        e.location = item["location"]
+        e.duration = {"hours": 1}  # 1h par match
+        cal.events.add(e)
 
-    return cal.to_ical().decode("utf-8")
+    with open(filename, "w") as f:
+        f.writelines(cal)
+    print(f"Fichier ICS avec matchs créé : {filename}")
 
 if __name__ == "__main__":
-    print("Fetching matches...")
-    matches = fetch_matches()
-
-    print("Generating ICS...")
-    ics_content = generate_ics(matches)
-
-    with open("mltt.ics", "w", encoding="utf-8") as f:
-        f.write(ics_content)
-
-    print("ICS file generated.")
-
-    # Force un commit même si le contenu est identique
-    subprocess.run(["git", "add", "mltt.ics"])
-    subprocess.run(["git", "commit", "-m", "Force update MLTT calendar"], check=False)
+    url = "https://mltt.com/2025-26-major-league-table-tennis-season"
+    schedule = fetch_schedule(url)
+    create_ics(schedule)

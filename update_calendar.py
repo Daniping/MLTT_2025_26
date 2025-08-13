@@ -12,17 +12,16 @@ def fetch_september_matches():
     soup = BeautifulSoup(r.text, "html.parser")
 
     events = []
-    for item in soup.select(".upcoming-matches li"):
+    # On prend tous les <li> et on filtre ceux contenant "Sep"
+    for item in soup.find_all("li"):
         text = item.get_text(separator=" ", strip=True)
-        # Exemple : "Sep 5, 2025 4:00 PM Alameda County Fairgrounds Pleasanton, CA"
-        parts = text.split(" ")
-        if parts[0] != "Sep":
-            continue  # On ne garde que septembre
+        if "Sep" not in text:
+            continue  # On garde seulement septembre
 
         try:
+            parts = text.split(" ")
             dt_str = " ".join(parts[:5])  # "Sep 5, 2025 4:00 PM"
             dt = datetime.strptime(dt_str, "%b %d, %Y %I:%M %p")
-            # Le lieu est le reste du texte
             location = " ".join(parts[5:])
             dt_utc = pytz.timezone("US/Pacific").localize(dt).astimezone(pytz.UTC)
             events.append({
@@ -35,6 +34,7 @@ def fetch_september_matches():
             continue
 
     return events
+
 
 def generate_ics(events, filename="MLTT_2025_26_V4.ics"):
     cal = Calendar()

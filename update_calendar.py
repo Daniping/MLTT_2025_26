@@ -4,7 +4,7 @@ from icalendar import Calendar, Event
 from datetime import datetime, timedelta
 import pytz
 
-MLTT_URL = "https://www.mltt.com/schedule"
+MLTT_URL = "https://www.mltt.com/league/schedule"
 
 def fetch_september_matches():
     r = requests.get(MLTT_URL)

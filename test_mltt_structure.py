@@ -7,7 +7,10 @@ print(f"🔍 Lecture de la page : {MLTT_URL}")
 r = requests.get(MLTT_URL)
 r.raise_for_status()
 soup = BeautifulSoup(r.text, "html.parser")
-print("✅ Page téléchargée avec succès.")
+
+from datetime import datetime
+
+print(f"✅ Page téléchargée avec succès à : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 # Recherche des matchs : chaque <h3> suivi d'un div contenant les équipes et le lieu
 matches = soup.select("h3 + div")

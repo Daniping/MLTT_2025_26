@@ -1,42 +1,27 @@
 import requests
 from bs4 import BeautifulSoup
 
-MLTT_URL = "https://www.mltt.com/league/schedule"
+URL = "https://www.mltt.com/league/schedule"
 
-print(f"🔍 Lecture de la page : {MLTT_URL}")
-r = requests.get(MLTT_URL)
-r.raise_for_status()
-soup = BeautifulSoup(r.text, "html.parser")
+def fetch_matches():
+    response = requests.get(URL)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, "html.parser")
 
-from datetime import datetime
+    matches = []
+    for match in soup.select("h3 + div.match"):
+        date = match.find("p", class_="date").get_text(strip=True)
+        time = match.find("p", class_="time").get_text(strip=True)
+        location = match.find("p", class_="location").get_text(strip=True)
+        matches.append(f"{date} {time} - {location}")
 
-print(f"✅ Page téléchargée avec succès à : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    return matches
 
-# Recherche des matchs : chaque <h3> suivi d'un div contenant les équipes et le lieu
-matches = soup.select("h3 + div")
-
-if not matches:
-    print("⚠️ Aucun match trouvé avec le sélecteur h3 + div")
-else:
-    print(f"✅ {len(matches)} matchs trouvés.\n")
-
-# Affichage des équipes, dates et lieux
-for i, h3 in enumerate(matches, 1):
-    title = h3.get_text(strip=True)  # souvent la date ou titre du match
-    match_div = h3.find_next_sibling()
-    if not match_div:
-        continue
-
-    # Extraction des équipes et du lieu
-    teams_text = match_div.get_text(" ", strip=True)
-    if " vs " in teams_text:
-        teams_part, *location_part = teams_text.split(" à ")
-        team1, team2 = teams_part.split(" vs ")
-        location = location_part[0] if location_part else "Lieu inconnu"
+if __name__ == "__main__":
+    matches = fetch_matches()
+    if matches:
+        print("📅 Matchs trouvés :")
+        for match in matches:
+            print(match)
     else:
-        team1 = team2 = location = "Non trouvé"
-
-    print(f"Match {i} : {team1} vs {team2}")
-    print(f"Date/Heure (titre) : {title}")
-    print(f"Lieu : {location}")
-    print("\n")
+        print("⚠️ Aucun match trouvé")

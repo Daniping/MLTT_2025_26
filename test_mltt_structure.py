@@ -1,27 +1,22 @@
 import requests
 from bs4 import BeautifulSoup
 
-URL = "https://www.mltt.com/league/schedule"
+MLTT_URL = "https://www.mltt.com/league/schedule"
 
-def fetch_matches():
-    response = requests.get(URL)
-    response.raise_for_status()
-    soup = BeautifulSoup(response.text, "html.parser")
+r = requests.get(MLTT_URL)
+r.raise_for_status()
+soup = BeautifulSoup(r.text, "html.parser")
 
-    matches = []
-    for match in soup.select("h3 + div.match"):
-        date = match.find("p", class_="date").get_text(strip=True)
-        time = match.find("p", class_="time").get_text(strip=True)
-        location = match.find("p", class_="location").get_text(strip=True)
-        matches.append(f"{date} {time} - {location}")
+# Sélecteur pour les matchs : <h3> suivi de div.match
+matches = soup.select("h3 + div.match")
 
-    return matches
+print(f"🔍 Nombre de matchs trouvés : {len(matches)}\n")
 
-if __name__ == "__main__":
-    matches = fetch_matches()
-    if matches:
-        print("📅 Matchs trouvés :")
-        for match in matches:
-            print(match)
-    else:
-        print("⚠️ Aucun match trouvé")
+# Affiche le HTML des 5 premiers matchs pour vérifier la structure
+for i, match in enumerate(matches[:5], 1):
+    print(f"--- Match {i} ---")
+    title = match.find_previous("h3").get_text(strip=True)
+    print(f"Titre : {title}")
+    print("HTML du match :")
+    print(match.prettify())
+    print("\n")

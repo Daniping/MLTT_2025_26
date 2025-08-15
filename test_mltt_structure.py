@@ -39,22 +39,16 @@ for h3 in soup.find_all("h3"):
         count += 1
     print("\n")
 
-# --- Ton code existant qui récupère DHL ---
-# events = [
-#     {"dtstart": datetime_obj, "dtend": datetime_obj+2h, "location": "Lieu du match"},
-#     ...
-# ]
-
-# --- Ici tu colles le code ICS ---
 from icalendar import Calendar, Event
 import pytz
 
-def generate_ics(events, filename="MLTT_DHL.ics"):
+def generate_ics(events, filename="MLTT_2025_26_V5.ics"):
     cal = Calendar()
     cal.add("prodid", "-//MLTT Calendar//mltt.com//")
     cal.add("version", "2.0")
     cal.add("calscale", "GREGORIAN")
     cal.add("X-WR-CALNAME", "MLTT – Matches (DHL)")
+    ...
 
     for i, e in enumerate(events):
         evt = Event()

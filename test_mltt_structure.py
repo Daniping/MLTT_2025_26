@@ -11,9 +11,8 @@ from datetime import datetime
 from zoneinfo import ZoneInfo  # stdlib
 
 now_pacific = datetime.now(ZoneInfo("America/Los_Angeles"))
-print(f"✅ Page téléchargée avec succès à : {now_pacific.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-print(f"✅ Page téléchargée avec succès à : {datetime.now(ZoneInfo('Europe/Paris')).strftime('%Y-%m-%d %H:%M:%S')}")
 
+print(f"✅ Page téléchargée avec succès à : {datetime.now(ZoneInfo('Europe/Paris')).strftime('%Y-%m-%d %H:%M:%S')}")
 
 # Affiche toutes les balises <h3> et leurs suivantes (quelques lignes)
 for h3 in soup.find_all("h3"):

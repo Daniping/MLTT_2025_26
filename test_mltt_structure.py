@@ -8,9 +8,11 @@ r = requests.get(MLTT_URL)
 r.raise_for_status()
 soup = BeautifulSoup(r.text, "html.parser")
 from datetime import datetime
+import pytz
 
-print(f"✅ Page téléchargée avec succès à : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
+pacific = pytz.timezone("US/Pacific")
+now_pacific = datetime.now(pacific)
+print(f"✅ Page téléchargée avec succès à : {now_pacific.strftime('%Y-%m-%d %H:%M:%S')}")
 
 # Affiche toutes les balises <h3> et leurs suivantes (quelques lignes)
 for h3 in soup.find_all("h3"):

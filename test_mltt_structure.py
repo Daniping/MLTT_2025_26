@@ -7,10 +7,21 @@ print(f"🔍 Lecture de la page : {MLTT_URL}")
 r = requests.get(MLTT_URL)
 r.raise_for_status()
 soup = BeautifulSoup(r.text, "html.parser")
-from datetime import datetime
-from zoneinfo import ZoneInfo  # stdlib
 
-now_pacific = datetime.now(ZoneInfo("America/Los_Angeles"))
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+# Exemple : texte récupéré depuis la page = "Aug 20, 2025 7:00 PM"
+match_time_str = "Aug 20, 2025 7:00 PM"
+
+# On précise que l'heure récupérée est en fuseau horaire Californie
+us_time = datetime.strptime(match_time_str, "%b %d, %Y %I:%M %p").replace(tzinfo=ZoneInfo("America/Los_Angeles"))
+
+# Conversion en heure de Paris
+paris_time = us_time.astimezone(ZoneInfo("Europe/Paris"))
+
+print("Heure Californie :", us_time.strftime("%Y-%m-%d %H:%M"))
+print("Heure Paris :", paris_time.strftime("%Y-%m-%d %H:%M"))
 
 print(f"✅ Page téléchargée avec succès à : {datetime.now(ZoneInfo('Europe/Paris')).strftime('%Y-%m-%d %H:%M:%S')}")
 

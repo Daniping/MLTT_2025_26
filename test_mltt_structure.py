@@ -7,7 +7,10 @@ print(f"🔍 Lecture de la page : {MLTT_URL}")
 r = requests.get(MLTT_URL)
 r.raise_for_status()
 soup = BeautifulSoup(r.text, "html.parser")
-print("✅ Page téléchargée avec succès.\n")
+from datetime import datetime
+
+print(f"✅ Page téléchargée avec succès à : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
 
 # Affiche toutes les balises <h3> et leurs suivantes (quelques lignes)
 for h3 in soup.find_all("h3"):

@@ -38,31 +38,36 @@ for h3 in soup.find_all("h3"):
         sibling = sibling.find_next_sibling()
         count += 1
     print("\n")
-
 from icalendar import Calendar, Event
+from datetime import datetime, timedelta
 import pytz
 
-def generate_ics(events, filename="MLTT_2025_26_V5.ics"):
-    cal = Calendar()
-    cal.add("prodid", "-//MLTT Calendar//mltt.com//")
-    cal.add("version", "2.0")
-    cal.add("calscale", "GREGORIAN")
-    cal.add("X-WR-CALNAME", "MLTT – Matches (DHL)")
-    ...
+cal = Calendar()
+cal.add("prodid", "-//MLTT Calendar V5//mxm.dk//")
+cal.add("version", "2.0")
 
-    for i, e in enumerate(events):
-        evt = Event()
-        evt.add("uid", f"mltt-dhl-{i}@mltt.com")
-        evt.add("dtstamp", pytz.timezone("Europe/Paris").localize(e["dtstart"]))
-        evt.add("dtstart", e["dtstart"])
-        evt.add("dtend", e["dtend"])
-        evt.add("summary", f"MLTT Event - {e['dtstart'].strftime('%d %b %H:%M')}")
-        evt.add("location", e["location"])
-        cal.add_component(evt)
+# fuseau Paris
+tz = pytz.timezone("Europe/Paris")
 
-    with open(filename, "wb") as f:
-        f.write(cal.to_ical())
-    print(f"✅ Fichier ICS créé : {filename}")
+for match in matches:
+    # suppose que tu as déjà construit `start_dt` (datetime) et `lieu`
+    event = Event()
+    event.add("summary", "MLTT Match")
+    event.add("dtstart", tz.localize(start_dt))
+    event.add("dtend", tz.localize(start_dt + timedelta(hours=2)))
+    event.add("location", lieu)
+    cal.add_component(event)
 
-# --- Appel de la fonction ICS ---
-generate_ics(events)
+# Après avoir ajouté tous les événements dans 'cal'
+
+import os
+
+# Crée le dossier s'il n'existe pas
+os.makedirs("MLTT_2025_26_V5", exist_ok=True)
+
+# Écriture du fichier ICS dans le dossier
+ics_filename = "MLTT_2025_26_V5/MLTT_2025_26_V5.ics"
+with open(ics_filename, "wb") as f:
+    f.write(cal.to_ical())
+
+print(f"✅ Fichier ICS généré : {ics_filename}")

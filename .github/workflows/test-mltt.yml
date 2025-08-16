@@ -16,8 +16,7 @@ jobs:
           python-version: "3.x"
 
       - name: Install dependencies
-    run: pip install requests beautifulsoup4 icalendar
+        run: pip install requests beautifulsoup4 icalendar
   
       - name: Run MLTT probe script
         run: python test_mltt_structure.py
-

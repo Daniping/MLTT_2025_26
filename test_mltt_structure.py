@@ -3,7 +3,7 @@ if date_text and time_text:
         # On suppose que l'heure sur le site est en Californie
         start_dt = datetime.strptime(datetime_str, "%b %d, %Y %I:%M %p").replace(tzinfo=ZoneInfo("America/Los_Angeles"))
         start_dt = start_dt.astimezone(tz_paris)
-    else:
+else:
         continue
 
     lieu = location.get_text(strip=True) if location else "Lieu inconnu"

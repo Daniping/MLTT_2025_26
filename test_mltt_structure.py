@@ -3,7 +3,8 @@ import pandas as pd
 from datetime import datetime
 
 # URL de l'API DHLE (à remplacer par la vraie URL)
-API_URL = "https://ton_api_dhle.com/schedule"
+API_URL = "https://web.mltt.com/api/schedule?seasonId=0e4e3575-5ac3-4afc-ba87-3930103569f0"
+
 
 # Définir la plage de dates : 1ère semaine de septembre 2025
 START_DATE = datetime(2025, 9, 1)

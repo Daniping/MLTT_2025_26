@@ -14,7 +14,8 @@ def fetch_dhle():
     """Récupère les données DHLE depuis l'API."""
     response = requests.get(API_URL)
     response.raise_for_status()
-    return response.json().get("matches", [])
+    return response.json()  
+
 
 def process_dhle(matches):
     """Filtre les matches et transforme les données en tableau avec D, H, L, E."""

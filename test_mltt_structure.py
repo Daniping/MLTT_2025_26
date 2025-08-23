@@ -18,18 +18,29 @@ def fetch_dhle():
 
 
 def process_dhle(matches):
-    """Filtre les matches et transforme les données en tableau avec D, H, L, E."""
     dhle_data = []
     for match in matches:
-        match_dt = datetime.fromisoformat(match.get("date") + "T" + match.get("time"))
+        date = match.get("date")
+        time = match.get("time")
+        if date is None or time is None:
+            continue  # ignore les matches sans date ou heure
+
+        # Conversion en datetime pour filtrage
+        try:
+            match_dt = datetime.fromisoformat(date + "T" + time)
+        except ValueError:
+            continue  # ignore si le format est incorrect
+
+        # Filtrage pour la première semaine de septembre 2025
         if START_DATE <= match_dt <= END_DATE:
             dhle_data.append({
-                "D": match.get("date"),
-                "H": match.get("time"),
+                "D": date,
+                "H": time,
                 "L": match.get("venue", {}).get("name"),
                 "E": f"{match.get('homeTeam')} vs {match.get('awayTeam')}"
             })
     return dhle_data
+
 
 def main():
     matches = fetch_dhle()

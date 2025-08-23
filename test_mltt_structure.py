@@ -44,9 +44,14 @@ def process_dhle(matches):
 
 def main():
     matches = fetch_dhle()
+
+    # Diagnostic : affiche les 5 premiers éléments pour voir la structure
+    print("Extrait des 5 premiers matches :", matches[:5])
+
     dhle_table = pd.DataFrame(process_dhle(matches))
     print(dhle_table)
     dhle_table.to_csv("dhle_schedule_first_week_sept.csv", index=False)
+
 
 if __name__ == "__main__":
     main()

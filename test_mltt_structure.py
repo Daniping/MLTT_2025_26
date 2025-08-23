@@ -5,10 +5,10 @@ from datetime import datetime
 # URL de l'API DHLE (à remplacer par la vraie URL)
 API_URL = "https://web.mltt.com/api/schedule?seasonId=0e4e3575-5ac3-4afc-ba87-3930103569f0"
 
-
-# Définir la plage de dates : 1ère semaine de septembre 2025
+# Plage de dates : tout septembre 2025
 START_DATE = datetime(2025, 9, 1)
-END_DATE = datetime(2025, 9, 7, 23, 59, 59)
+END_DATE = datetime(2025, 9, 30, 23, 59, 59)
+
 
 def fetch_dhle():
     """Récupère les données DHLE depuis l'API."""

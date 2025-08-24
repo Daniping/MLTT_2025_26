@@ -1,36 +1,36 @@
 import requests
 
 API_URL = "https://web.mltt.com/api/schedule?seasonId=0e4e3575-5ac3-4afc-ba87-3930103569f0"
-TEAM_NAME = "Florida Crocs"  # <-- mets ici le nom de l’équipe connue
 
-def fetch_data():
+def fetch_dhle():
     response = requests.get(API_URL)
     response.raise_for_status()
     return response.json()
 
-# Recherche récursive du nom d'équipe
-def search_team(obj, team_name, path=""):
-    if isinstance(obj, dict):
-        for k, v in obj.items():
-            new_path = f"{path}/{k}"
-            if isinstance(v, (dict, list)):
-                yield from search_team(v, team_name, new_path)
-            elif isinstance(v, str) and team_name.lower() in v.lower():
-                yield new_path, v
-    elif isinstance(obj, list):
-        for i, v in enumerate(obj):
-            new_path = f"{path}[{i}]"
-            yield from search_team(v, team_name, new_path)
+def search_keyword(data, keyword, path=""):
+    results = []
+    if isinstance(data, dict):
+        for k, v in data.items():
+            results.extend(search_keyword(v, keyword, path + f".{k}"))
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            results.extend(search_keyword(item, keyword, path + f"[{i}]"))
+    else:
+        if keyword.lower() in str(data).lower():  # insensible à la casse
+            results.append((path, data))
+    return results
 
 def main():
-    data = fetch_data()
-    found = list(search_team(data, TEAM_NAME))
-    if found:
-        print(f"Occurrences de '{TEAM_NAME}' trouvées :")
-        for path, value in found:
-            print(f" - Chemin: {path} | Valeur: {value}")
+    matches = fetch_dhle()
+    keyword = "crocs"   # 🔍 cherche partout le mot "crocs"
+    results = search_keyword(matches, keyword)
+
+    if results:
+        print(f"Occurrences de '{keyword}' trouvées :")
+        for path, value in results:
+            print(f"{path} -> {value}")
     else:
-        print(f"Aucune occurrence de '{TEAM_NAME}' trouvée dans les données.")
+        print(f"Aucune occurrence de '{keyword}' trouvée.")
 
 if __name__ == "__main__":
     main()

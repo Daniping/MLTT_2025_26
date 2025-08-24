@@ -1,57 +1,36 @@
 import requests
-import pandas as pd
-from datetime import datetime
 
-# URL de l'API DHLE (à remplacer par la vraie URL)
 API_URL = "https://web.mltt.com/api/schedule?seasonId=0e4e3575-5ac3-4afc-ba87-3930103569f0"
+TEAM_NAME = "Florida Crocs"  # <-- mets ici le nom de l’équipe connue
 
-# Plage de dates : tout septembre 2025
-START_DATE = datetime(2025, 9, 1)
-END_DATE = datetime(2025, 9, 30, 23, 59, 59)
-
-
-def fetch_dhle():
-    """Récupère les données DHLE depuis l'API."""
+def fetch_data():
     response = requests.get(API_URL)
     response.raise_for_status()
-    return response.json()  
+    return response.json()
 
-
-def process_dhle(matches):
-    dhle_data = []
-    for match in matches:
-        date = match.get("date")
-        time = match.get("time")
-        if date is None or time is None:
-            continue  # ignore les matches sans date ou heure
-
-        # Conversion en datetime pour filtrage
-        try:
-            match_dt = datetime.fromisoformat(date + "T" + time)
-        except ValueError:
-            continue  # ignore si le format est incorrect
-
-        # Filtrage pour la première semaine de septembre 2025
-        if START_DATE <= match_dt <= END_DATE:
-            dhle_data.append({
-                "D": date,
-                "H": time,
-                "L": match.get("venue", {}).get("name"),
-                "E": f"{match.get('homeTeam')} vs {match.get('awayTeam')}"
-            })
-    return dhle_data
-
+# Recherche récursive du nom d'équipe
+def search_team(obj, team_name, path=""):
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            new_path = f"{path}/{k}"
+            if isinstance(v, (dict, list)):
+                yield from search_team(v, team_name, new_path)
+            elif isinstance(v, str) and team_name.lower() in v.lower():
+                yield new_path, v
+    elif isinstance(obj, list):
+        for i, v in enumerate(obj):
+            new_path = f"{path}[{i}]"
+            yield from search_team(v, team_name, new_path)
 
 def main():
-    matches = fetch_dhle()
-
-    # Diagnostic : affiche les 5 premiers éléments pour voir la structure
-    print("Extrait des 5 premiers matches :", matches[:5])
-
-    dhle_table = pd.DataFrame(process_dhle(matches))
-    print(dhle_table)
-    dhle_table.to_csv("dhle_schedule_first_week_sept.csv", index=False)
-
+    data = fetch_data()
+    found = list(search_team(data, TEAM_NAME))
+    if found:
+        print(f"Occurrences de '{TEAM_NAME}' trouvées :")
+        for path, value in found:
+            print(f" - Chemin: {path} | Valeur: {value}")
+    else:
+        print(f"Aucune occurrence de '{TEAM_NAME}' trouvée dans les données.")
 
 if __name__ == "__main__":
     main()

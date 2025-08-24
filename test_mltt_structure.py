@@ -7,30 +7,23 @@ def fetch_dhle():
     response.raise_for_status()
     return response.json()
 
-def search_keyword(data, keyword, path=""):
-    results = []
+def list_keys(data, path=""):
+    keys = set()
     if isinstance(data, dict):
         for k, v in data.items():
-            results.extend(search_keyword(v, keyword, path + f".{k}"))
+            keys.add(path + k)
+            keys.update(list_keys(v, path + k + "."))
     elif isinstance(data, list):
         for i, item in enumerate(data):
-            results.extend(search_keyword(item, keyword, path + f"[{i}]"))
-    else:
-        if keyword.lower() in str(data).lower():  # insensible à la casse
-            results.append((path, data))
-    return results
+            keys.update(list_keys(item, path + f"[{i}]."))
+    return keys
 
 def main():
-    matches = fetch_dhle()
-    keyword = "crocs"   # 🔍 cherche partout le mot "crocs"
-    results = search_keyword(matches, keyword)
-
-    if results:
-        print(f"Occurrences de '{keyword}' trouvées :")
-        for path, value in results:
-            print(f"{path} -> {value}")
-    else:
-        print(f"Aucune occurrence de '{keyword}' trouvée.")
+    data = fetch_dhle()
+    keys = list_keys(data)
+    print("Clés uniques dans le JSON :")
+    for k in sorted(keys):
+        print(k)
 
 if __name__ == "__main__":
     main()

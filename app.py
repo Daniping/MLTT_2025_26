@@ -20,3 +20,15 @@ matches = [
     ("2025-10-05 14:30", "Carolina Gold Rush", "Portland Paddlers", "Portland, OR"),
     # … ajouter toutes les autres semaines de la même manière …
 ]
+
+@app.route('/mltt.ics')
+def mltt_ical():
+    c = Calendar()
+    for dt_str, team1, team2, location in matches:
+        e = Event()
+        e.name = f"{team1} vs {team2}"
+        e.begin = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+        e.duration = timedelta(hours=1, minutes=30)
+        e.location = location
+        c.events.add(e)
+    return Response(str(c), mimetype='text/calendar')

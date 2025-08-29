@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: mltt-2025-26
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
+    plan: free

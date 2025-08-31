@@ -1,1 +1,13 @@
 index.html
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>MLTT 2025-26</title>
+</head>
+<body>
+    <h1>Bienvenue sur MLTT 2025-26 !</h1>
+    <p>Cette page sert de test pour la publication sur Railway.</p>
+</body>
+</html>

@@ -1,9 +1,23 @@
-services:
-  - type: web
-    name: mltt-ical
-    env: python
-    plan: free
-    repo: https://github.com/<ton_nom>/<nom_du_repo>
-    branch: main
-    buildCommand: pip install -r requirements.txt
-    startCommand: python app.py
+name: Test MLTT
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Test syntax
+        run: python -m py_compile app.py

@@ -1,57 +1,247 @@
-from flask import Flask, Response
-from datetime import datetime, timedelta
+# app.py
+import os
+import re
 import uuid
+import time
+import logging
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+
+import requests
+from bs4 import BeautifulSoup
+from flask import Flask, Response
+
+# ---- config ----
+PORT = int(os.getenv("PORT", "8080"))
+SCHEDULE_URL = os.getenv("MLTT_SCHEDULE_URL", "https://www.mltt.com/league/schedule")
+REFRESH_SECONDS = int(os.getenv("MLTT_REFRESH_SECONDS", "1800"))  # cache 30 min
+EVENT_DURATION_HOURS = float(os.getenv("MLTT_EVENT_HOURS", "4.0"))
+
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; MLTT-ICS/1.0)"}
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+log = logging.getLogger("mltt-scraper")
 
 app = Flask(__name__)
+_cache = {"ts": 0, "events": []}
 
-def generate_ical():
-    # Exemple de matchs statiques ; tu pourras ajouter le scraping ensuite
-    events = [
-        {
-            "summary": "Florida Crocs vs Bay Area Blasters",
-            "location": "Pleasanton, CA",
-            "start": datetime(2025, 9, 7, 14, 30),
-        },
-        {
-            "summary": "Texas Smash vs Carolina Gold Rush",
-            "location": "Houston, TX",
-            "start": datetime(2025, 9, 14, 15, 0),
-        }
+# timezone mapping (label -> IANA)
+TZ_MAP = {
+    "PT": "America/Los_Angeles",
+    "PST": "America/Los_Angeles",
+    "PDT": "America/Los_Angeles",
+    "ET": "America/New_York",
+    "EST": "America/New_York",
+    "EDT": "America/New_York",
+    "CT": "America/Chicago",
+    "MT": "America/Denver",
+}
+
+date_re = re.compile(r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?\s+\d{1,2},\s+\d{4}\s+\d{1,2}:\d{2}\s*(AM|PM)?", re.I)
+
+# ---- helpers ----
+def parse_datetime_with_zone(dt_text, tz_label=None):
+    dt_text = dt_text.strip()
+    # Try common formats
+    fmts = ["%b %d, %Y %I:%M %p", "%B %d, %Y %I:%M %p", "%Y-%m-%d %H:%M", "%m/%d/%Y %I:%M %p"]
+    for fmt in fmts:
+        try:
+            naive = datetime.strptime(dt_text, fmt)
+            if tz_label and tz_label.upper() in TZ_MAP:
+                tz = ZoneInfo(TZ_MAP[tz_label.upper()])
+            else:
+                # fallback: if no tz, leave as UTC assumption
+                tz = timezone.utc
+            aware = naive.replace(tzinfo=tz)
+            return aware.astimezone(timezone.utc)
+        except Exception:
+            continue
+    return None
+
+def escape_ical_text(s: str) -> str:
+    # escape backslash, semicolon, comma, newline
+    if not s:
+        return s
+    s = s.replace("\\", "\\\\")
+    s = s.replace(";", "\\;")
+    s = s.replace(",", "\\,")
+    s = s.replace("\n", "\\n")
+    return s
+
+# ---- scraping ----
+def extract_events_from_html(html):
+    soup = BeautifulSoup(html, "html.parser")
+    events = []
+    seen = set()
+
+    # find all "Versus" images — on the page Versus images have alt like "Versus"
+    versus_imgs = [img for img in soup.find_all("img") if img.get("alt") and "versus" in img.get("alt", "").lower()]
+
+    for vs in versus_imgs:
+        try:
+            # find team names from nearby images (previous and next img with alt != 'versus')
+            team1 = None
+            team2 = None
+            prev_img = vs.find_previous("img")
+            while prev_img and (not prev_img.get("alt") or "versus" in prev_img.get("alt", "").lower()):
+                prev_img = prev_img.find_previous("img")
+            if prev_img and prev_img.get("alt"):
+                team1 = prev_img.get("alt").strip()
+
+            next_img = vs.find_next("img")
+            while next_img and (not next_img.get("alt") or "versus" in next_img.get("alt", "").lower()):
+                next_img = next_img.find_next("img")
+            if next_img and next_img.get("alt"):
+                team2 = next_img.get("alt").strip()
+
+            # find closest datetime text near vs
+            dt_node = vs.find_previous(lambda tag: tag.name in ("h1","h2","h3","h4","p","div","span") and tag.get_text(strip=True) and date_re.search(tag.get_text(strip=True)))
+            if dt_node is None:
+                dt_node = vs.find_next(lambda tag: tag.name in ("h1","h2","h3","h4","p","div","span") and tag.get_text(strip=True) and date_re.search(tag.get_text(strip=True)))
+
+            dt_text = dt_node.get_text(" ", strip=True) if dt_node else ""
+            m = date_re.search(dt_text) if dt_text else None
+            dt_parsed = None
+            if m:
+                dt_parsed = parse_datetime_with_zone(m.group(0), None)
+
+            # timezone label search (PT/ET) near dt_node
+            tz_label = None
+            if dt_node:
+                # search next few siblings/texts for a short 'PT' or 'ET'
+                for sib in dt_node.find_all_next(limit=8):
+                    text = (sib.get_text(strip=True) or "").strip()
+                    if text.upper() in TZ_MAP:
+                        tz_label = text.upper()
+                        break
+                    # sometimes timezone appears on previous nodes too
+                if not tz_label:
+                    for sib in dt_node.find_all_previous(limit=8):
+                        text = (sib.get_text(strip=True) or "").strip()
+                        if text.upper() in TZ_MAP:
+                            tz_label = text.upper()
+                            break
+
+            # If we found tz_label and raw dt_text, reparse with tz
+            if m and tz_label:
+                dt_parsed = parse_datetime_with_zone(m.group(0), tz_label)
+
+            # venue/city: search next tags for lines with comma + state or known keywords
+            location = ""
+            if dt_node:
+                # look forward for venue and city lines (limit search)
+                loc_parts = []
+                for node in dt_node.find_all_next(limit=12):
+                    txt = node.get_text(" ", strip=True)
+                    if not txt:
+                        continue
+                    # prefer venue lines (contain words like 'Convention', 'Fairgrounds', 'Center', 'Arena', 'Field', 'VBC')
+                    if any(k in txt for k in ("Convention", "Fairgrounds", "Center", "Arena", "Field", "VBC", "Memorial")):
+                        loc_parts.append(txt)
+                    # city,state pattern
+                    if re.search(r"[A-Za-z .]+,\s*[A-Z]{2}\b", txt):
+                        loc_parts.append(txt)
+                        break
+                    # short city lines like 'Pleasanton, CA' appear — capture them
+                    if re.match(r"^[A-Za-z .]+,\s*[A-Z]{2}$", txt):
+                        loc_parts.append(txt)
+                        break
+                if loc_parts:
+                    location = ", ".join(dict.fromkeys(loc_parts))  # unique preserve order
+
+            # if no dt_parsed, skip
+            if not dt_parsed:
+                continue
+
+            # construct summary
+            if team1 and team2:
+                summary = f"{team1} vs {team2}"
+            else:
+                # fallback: use nearby text block
+                summary = vs.get("alt") or (team1 or "") + " vs " + (team2 or "")
+                summary = summary.strip()
+
+            # deduplicate by (dt,summary)
+            key = (dt_parsed.isoformat(), summary)
+            if key in seen:
+                continue
+            seen.add(key)
+
+            events.append({
+                "summary": escape_ical_text(summary),
+                "location": escape_ical_text(location),
+                "start_utc": dt_parsed,
+            })
+        except Exception as e:
+            log.debug("skip one vs block: %s", e)
+            continue
+
+    # final sort
+    events.sort(key=lambda e: e["start_utc"])
+    return events
+
+def fetch_events():
+    try:
+        log.info("Requesting schedule page %s", SCHEDULE_URL)
+        r = requests.get(SCHEDULE_URL, headers=HEADERS, timeout=20)
+        r.raise_for_status()
+        events = extract_events_from_html(r.text)
+        if not events:
+            log.warning("No events found on page, returning empty list.")
+        else:
+            log.info("Found %d events.", len(events))
+        return events
+    except Exception as e:
+        log.exception("Scrape failed")
+        return []
+
+def get_events_cached():
+    now = time.time()
+    if now - _cache["ts"] > REFRESH_SECONDS or not _cache["events"]:
+        _cache["events"] = fetch_events()
+        _cache["ts"] = now
+    return _cache["events"]
+
+# ---- ICS builder ----
+def build_ics(events):
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "PRODID:-//MLTT 2025-26//EN"
     ]
-
-    ical = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//MLTT 2025-26//EN\n"
-
     for ev in events:
-        uid = str(uuid.uuid4()) + "@mltt.org"
-        dtstart = ev["start"].strftime("%Y%m%dT%H%M%SZ")
-        dtend = (ev["start"] + timedelta(hours=4)).strftime("%Y%m%dT%H%M%SZ")
-        dtstamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
-
-        location = ""
+        uid = f"{uuid.uuid4()}@mltt.org"
+        dtstart = ev["start_utc"].astimezone(timezone.utc)
+        dtend = dtstart + timedelta(hours=EVENT_DURATION_HOURS)
+        dtstamp = datetime.now(timezone.utc)
+        lines.append("BEGIN:VEVENT")
+        lines.append(f"UID:{uid}")
+        lines.append(f"DTSTAMP:{dtstamp.strftime('%Y%m%dT%H%M%SZ')}")
+        lines.append(f"DTSTART:{dtstart.strftime('%Y%m%dT%H%M%SZ')}")
+        lines.append(f"DTEND:{dtend.strftime('%Y%m%dT%H%M%SZ')}")
+        lines.append(f"SUMMARY:{ev['summary']}")
         if ev.get("location"):
-            location = ev["location"].replace(",", "\\,")
+            lines.append(f"LOCATION:{ev['location']}")
+        lines.append("END:VEVENT")
+    lines.append("END:VCALENDAR")
+    return "\n".join(lines) + "\n"
 
-        ical += "BEGIN:VEVENT\n"
-        ical += f"UID:{uid}\n"
-        ical += f"DTSTAMP:{dtstamp}\n"
-        ical += f"DTSTART:{dtstart}\n"
-        ical += f"DTEND:{dtend}\n"
-        ical += f"SUMMARY:{ev['summary']}\n"
-        if location:
-            ical += f"LOCATION:{location}\n"
-        ical += "END:VEVENT\n"
-
-    ical += "END:VCALENDAR\n"
-    return ical
-
-@app.route("/mltt.ics")
-def ical_feed():
-    ical_data = generate_ical()
-    return Response(ical_data, mimetype="text/calendar")
-
+# ---- flask routes ----
 @app.route("/")
 def home():
-    return "<h1>MLTT 2025-26</h1><p>Flux iCal disponible sur <a href='/mltt.ics'>/mltt.ics</a></p>"
+    src = SCHEDULE_URL or "(none)"
+    return f"<h1>MLTT iCal</h1><p>Flux: <a href='/mltt.ics'>/mltt.ics</a></p><p>Source: {src}</p>"
+
+@app.route("/mltt.ics")
+def mltt_ics():
+    events = get_events_cached()
+    if not events:
+        # graceful empty calendar
+        return Response("BEGIN:VCALENDAR\nVERSION:2.0\nEND:VCALENDAR\n", mimetype="text/calendar")
+    ics = build_ics(events)
+    return Response(ics, mimetype="text/calendar")
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=PORT)

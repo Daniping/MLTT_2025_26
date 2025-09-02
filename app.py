@@ -33,7 +33,10 @@ def generate_ical():
         ical += f"DTEND:{dtend}\n"
         ical += f"SUMMARY:{ev['summary']}\n"
         ical += (
-            f"LOCATION:{ev['location'].replace(',', '\\,')}\n"
+            location = ev.get("location", "")
+if location:
+    location = location.replace(",", "\\,")
+    ical += f"LOCATION:{location}\n"
             if ev.get("location")
             else ""
         )

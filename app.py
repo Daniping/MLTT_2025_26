@@ -1,52 +1,51 @@
 from flask import Flask, Response
 from datetime import datetime, timedelta
-import requests
-from bs4 import BeautifulSoup
+import uuid
 
 app = Flask(__name__)
 
-MLTT_URL = "https://example.com/mltt-schedule"  # Remplace par l’URL de ton planning réel
+def generate_ical():
+    events = [
+        {
+            "summary": "Florida Crocs vs Bay Area Blasters",
+            "location": "Pleasanton, CA",
+            "start": datetime(2025, 9, 7, 14, 30),
+        },
+        {
+            "summary": "Texas Smash vs Carolina Gold Rush",
+            "location": "Houston, TX",
+            "start": datetime(2025, 9, 14, 15, 0),
+        }
+    ]
 
-def generate_ics():
-    events = []
+    ical = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//MLTT 2025-26//EN\n"
 
-    # Récupération de la page
-    resp = requests.get(MLTT_URL)
-    soup = BeautifulSoup(resp.text, "html.parser")
+    for ev in events:
+        uid = str(uuid.uuid4()) + "@mltt.org"
+        dtstart = ev["start"].strftime("%Y%m%dT%H%M%SZ")
+        dtend = (ev["start"] + timedelta(hours=4)).strftime("%Y%m%dT%H%M%SZ")
+        dtstamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
 
-    # Exemple : on parcourt tous les matchs dans la page
-    for match_div in soup.select(".match"):  # Adapte le sélecteur à ton HTML
-        teams = match_div.select_one(".teams").text.strip()
-        dt_str = match_div.select_one(".datetime").text.strip()  # Ex: "2025-09-07 14:30"
-        dt_start = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
-        dt_end = dt_start + timedelta(hours=4)  # durée estimée
+        ical += "BEGIN:VEVENT\n"
+        ical += f"UID:{uid}\n"
+        ical += f"DTSTAMP:{dtstamp}\n"
+        ical += f"DTSTART:{dtstart}\n"
+        ical += f"DTEND:{dtend}\n"
+        ical += f"SUMMARY:{ev['summary']}\n"
+        ical += f"LOCATION:{ev['location']}\n"
+        ical += "END:VEVENT\n"
 
-        location = match_div.select_one(".location").text.strip()
-
-        event = f"""BEGIN:VEVENT
-SUMMARY:{teams}
-DTSTART:{dt_start.strftime('%Y%m%dT%H%M%SZ')}
-DTEND:{dt_end.strftime('%Y%m%dT%H%M%SZ')}
-LOCATION:{location}
-UID:{teams.replace(' ', '')}-{dt_start.strftime('%Y%m%dT%H%M%S')}@mltt.org
-END:VEVENT"""
-        events.append(event)
-
-    ics_content = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//MLTT 2025-26//EN\n"
-    ics_content += "\n".join(events)
-    ics_content += "\nEND:VCALENDAR"
-    return ics_content
-
-@app.route("/")
-def index():
-    return "<h1>Bienvenue sur MLTT 2025-26 !</h1><p>Pour télécharger le calendrier : <a href='/mltt.ics'>mltt.ics</a></p>"
+    ical += "END:VCALENDAR\n"
+    return ical
 
 @app.route("/mltt.ics")
-def mltt_ics():
-    ics_data = generate_ics()
-    return Response(ics_data, mimetype="text/calendar", headers={
-        "Content-Disposition": "attachment; filename=mltt.ics"
-    })
+def ical_feed():
+    ical_data = generate_ical()
+    return Response(ical_data, mimetype="text/calendar")
+
+@app.route("/")
+def home():
+    return "<h1>MLTT 2025-26</h1><p>Flux iCal disponible sur <a href='/mltt.ics'>/mltt.ics</a></p>"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)

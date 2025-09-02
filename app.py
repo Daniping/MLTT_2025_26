@@ -5,6 +5,7 @@ import uuid
 app = Flask(__name__)
 
 def generate_ical():
+    # Exemple de matchs statiques ; tu pourras ajouter le scraping ensuite
     events = [
         {
             "summary": "Florida Crocs vs Bay Area Blasters",
@@ -26,20 +27,18 @@ def generate_ical():
         dtend = (ev["start"] + timedelta(hours=4)).strftime("%Y%m%dT%H%M%SZ")
         dtstamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
 
+        location = ""
+        if ev.get("location"):
+            location = ev["location"].replace(",", "\\,")
+
         ical += "BEGIN:VEVENT\n"
         ical += f"UID:{uid}\n"
         ical += f"DTSTAMP:{dtstamp}\n"
         ical += f"DTSTART:{dtstart}\n"
         ical += f"DTEND:{dtend}\n"
         ical += f"SUMMARY:{ev['summary']}\n"
-        ical += (
-            location = ev.get("location", "")
-if location:
-    location = location.replace(",", "\\,")
-    ical += f"LOCATION:{location}\n"
-            if ev.get("location")
-            else ""
-        )
+        if location:
+            ical += f"LOCATION:{location}\n"
         ical += "END:VEVENT\n"
 
     ical += "END:VCALENDAR\n"

@@ -1,4 +1,4 @@
-# app.py
+# app.py — version finale prête à coller
 import os
 import re
 import uuid
@@ -25,7 +25,7 @@ log = logging.getLogger("mltt-scraper")
 app = Flask(__name__)
 _cache = {"ts": 0, "events": []}
 
-# timezone mapping (label -> IANA)
+# ---- timezone map (IANA names) ----
 TZ_MAP = {
     "PT": "America/Los_Angeles",
     "PST": "America/Los_Angeles",
@@ -37,12 +37,12 @@ TZ_MAP = {
     "MT": "America/Denver",
 }
 
-date_re = re.compile(r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?\s+\d{1,2},\s+\d{4}\s+\d{1,2}:\d{2}\s*(AM|PM)?", re.I)
+# regex to find date/time strings like "Sep 5, 2025 4:00 PM"
+date_re = re.compile(r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?\s+\d{1,2},\s*\d{4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?", re.I)
 
 # ---- helpers ----
 def parse_datetime_with_zone(dt_text, tz_label=None):
     dt_text = dt_text.strip()
-    # Try common formats
     fmts = ["%b %d, %Y %I:%M %p", "%B %d, %Y %I:%M %p", "%Y-%m-%d %H:%M", "%m/%d/%Y %I:%M %p"]
     for fmt in fmts:
         try:
@@ -50,7 +50,6 @@ def parse_datetime_with_zone(dt_text, tz_label=None):
             if tz_label and tz_label.upper() in TZ_MAP:
                 tz = ZoneInfo(TZ_MAP[tz_label.upper()])
             else:
-                # fallback: if no tz, leave as UTC assumption
                 tz = timezone.utc
             aware = naive.replace(tzinfo=tz)
             return aware.astimezone(timezone.utc)
@@ -59,7 +58,6 @@ def parse_datetime_with_zone(dt_text, tz_label=None):
     return None
 
 def escape_ical_text(s: str) -> str:
-    # escape backslash, semicolon, comma, newline
     if not s:
         return s
     s = s.replace("\\", "\\\\")
@@ -74,14 +72,13 @@ def extract_events_from_html(html):
     events = []
     seen = set()
 
-    # find all "Versus" images — on the page Versus images have alt like "Versus"
+    # find all images with alt containing "versus" (robust for this site)
     versus_imgs = [img for img in soup.find_all("img") if img.get("alt") and "versus" in img.get("alt", "").lower()]
 
     for vs in versus_imgs:
         try:
-            # find team names from nearby images (previous and next img with alt != 'versus')
-            team1 = None
-            team2 = None
+            # team names from nearby images with alt (skip "versus")
+            team1 = None; team2 = None
             prev_img = vs.find_previous("img")
             while prev_img and (not prev_img.get("alt") or "versus" in prev_img.get("alt", "").lower()):
                 prev_img = prev_img.find_previous("img")
@@ -94,7 +91,7 @@ def extract_events_from_html(html):
             if next_img and next_img.get("alt"):
                 team2 = next_img.get("alt").strip()
 
-            # find closest datetime text near vs
+            # find datetime text near the versus image
             dt_node = vs.find_previous(lambda tag: tag.name in ("h1","h2","h3","h4","p","div","span") and tag.get_text(strip=True) and date_re.search(tag.get_text(strip=True)))
             if dt_node is None:
                 dt_node = vs.find_next(lambda tag: tag.name in ("h1","h2","h3","h4","p","div","span") and tag.get_text(strip=True) and date_re.search(tag.get_text(strip=True)))
@@ -105,63 +102,47 @@ def extract_events_from_html(html):
             if m:
                 dt_parsed = parse_datetime_with_zone(m.group(0), None)
 
-            # timezone label search (PT/ET) near dt_node
+            # search for timezone label (PT/ET) near dt_node
             tz_label = None
             if dt_node:
-                # search next few siblings/texts for a short 'PT' or 'ET'
                 for sib in dt_node.find_all_next(limit=8):
                     text = (sib.get_text(strip=True) or "").strip()
                     if text.upper() in TZ_MAP:
-                        tz_label = text.upper()
-                        break
-                    # sometimes timezone appears on previous nodes too
+                        tz_label = text.upper(); break
                 if not tz_label:
                     for sib in dt_node.find_all_previous(limit=8):
                         text = (sib.get_text(strip=True) or "").strip()
                         if text.upper() in TZ_MAP:
-                            tz_label = text.upper()
-                            break
-
-            # If we found tz_label and raw dt_text, reparse with tz
+                            tz_label = text.upper(); break
             if m and tz_label:
                 dt_parsed = parse_datetime_with_zone(m.group(0), tz_label)
 
-            # venue/city: search next tags for lines with comma + state or known keywords
+            # venue search
             location = ""
             if dt_node:
-                # look forward for venue and city lines (limit search)
                 loc_parts = []
                 for node in dt_node.find_all_next(limit=12):
                     txt = node.get_text(" ", strip=True)
                     if not txt:
                         continue
-                    # prefer venue lines (contain words like 'Convention', 'Fairgrounds', 'Center', 'Arena', 'Field', 'VBC')
                     if any(k in txt for k in ("Convention", "Fairgrounds", "Center", "Arena", "Field", "VBC", "Memorial")):
                         loc_parts.append(txt)
-                    # city,state pattern
                     if re.search(r"[A-Za-z .]+,\s*[A-Z]{2}\b", txt):
-                        loc_parts.append(txt)
-                        break
-                    # short city lines like 'Pleasanton, CA' appear — capture them
+                        loc_parts.append(txt); break
                     if re.match(r"^[A-Za-z .]+,\s*[A-Z]{2}$", txt):
-                        loc_parts.append(txt)
-                        break
+                        loc_parts.append(txt); break
                 if loc_parts:
-                    location = ", ".join(dict.fromkeys(loc_parts))  # unique preserve order
+                    location = ", ".join(dict.fromkeys(loc_parts))
 
-            # if no dt_parsed, skip
             if not dt_parsed:
                 continue
 
-            # construct summary
             if team1 and team2:
                 summary = f"{team1} vs {team2}"
             else:
-                # fallback: use nearby text block
-                summary = vs.get("alt") or (team1 or "") + " vs " + (team2 or "")
+                summary = (team1 or "") + " vs " + (team2 or "")
                 summary = summary.strip()
 
-            # deduplicate by (dt,summary)
             key = (dt_parsed.isoformat(), summary)
             if key in seen:
                 continue
@@ -176,7 +157,6 @@ def extract_events_from_html(html):
             log.debug("skip one vs block: %s", e)
             continue
 
-    # final sort
     events.sort(key=lambda e: e["start_utc"])
     return events
 
@@ -187,11 +167,11 @@ def fetch_events():
         r.raise_for_status()
         events = extract_events_from_html(r.text)
         if not events:
-            log.warning("No events found on page, returning empty list.")
+            log.warning("No events found on page.")
         else:
             log.info("Found %d events.", len(events))
         return events
-    except Exception as e:
+    except Exception:
         log.exception("Scrape failed")
         return []
 
@@ -238,7 +218,6 @@ def home():
 def mltt_ics():
     events = get_events_cached()
     if not events:
-        # graceful empty calendar
         return Response("BEGIN:VCALENDAR\nVERSION:2.0\nEND:VCALENDAR\n", mimetype="text/calendar")
     ics = build_ics(events)
     return Response(ics, mimetype="text/calendar")

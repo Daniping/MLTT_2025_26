@@ -1,4 +1,4 @@
-name: Update MLTT Schedule
+name: Scraper MLTT
 
 on:
   schedule:
@@ -9,8 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -23,16 +22,8 @@ jobs:
       - name: Run scraper
         run: python mltt_scraper.py
 
-      - name: Upload ICS artifact
+      - name: Upload ICS
         uses: actions/upload-artifact@v3
         with:
-        name: mltt-calendar
-        path: MLTT_2025_26_V5.ics
-
-      - name: Commit and push changes
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-          git add MLTT_2025_26_V5.ics
-          git commit -m "Update MLTT schedule"
-          git push
+          name: MLTT_ICS
+          path: MLTT_2025_26_V5.ics

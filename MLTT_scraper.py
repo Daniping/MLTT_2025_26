@@ -74,8 +74,6 @@ with open(OUT_ICS, "w", encoding="utf-8") as f:
     f.write("\n".join(lines) + "\n")
 
 print(f"[OK] Fichier {OUT_ICS} écrit avec {len(matches)} événements.")
-    lines.append("END:VCALENDAR")
-
 
 def main():
     html = fetch_html()

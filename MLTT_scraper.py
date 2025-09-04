@@ -17,7 +17,7 @@ TEAM_MAP = {
     "GOLDRUSH": "Carolina Gold Rush"
 }
 
-URL = "https://www.mltt.com/schedule"
+URL = "https://www.mltt.com/league/schedule"
 ICS_FILE = "MLTT_2025_26.ics"
 
 def fetch_matches():

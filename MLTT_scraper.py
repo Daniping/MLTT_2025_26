@@ -65,14 +65,16 @@ def generate_ics(matches):
         lines.append(f"SUMMARY:{m['team1']} vs {m['team2']}")
         lines.append(f"DTSTART;TZID=Europe/Paris:{dtstart}")
         lines.append(f"LOCATION:{m['venue']}, {m['city']}")
-        lines.append("END:VEVENT")
+        lines.append("END:VEVENT"
 
+lines.append("END:VCALENDAR")
+
+with open(OUT_ICS, "w", encoding="utf-8") as f:
+    f.write("\n".join(lines) + "\n")
+
+print(f"[OK] Fichier {OUT_ICS} écrit avec {len(matches)} événements.")
     lines.append("END:VCALENDAR")
 
-    with open(OUT_ICS, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines) + "\n")
-
-    print(f"Wrote {OUT_ICS} with {len(matches)} events.")
 
 def main():
     html = fetch_html()

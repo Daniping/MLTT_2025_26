@@ -13,38 +13,35 @@ soup = BeautifulSoup(resp.text, "html.parser")
 
 matches = []
 
-# Parcourir chaque match block
+# Exemple : on récupère les blocs de match (à ajuster selon le HTML)
 for match_block in soup.select(".future-match-single-wrap"):
-    children = match_block.find_all(recursive=False)  # enfants directs
+    # Date et heure
+    date_str = match_block.select_one(".match-date").get_text(strip=True)
+    time_str = match_block.select_one(".match-time").get_text(strip=True)
+    dt = datetime.strptime(f"{date_str} {time_str}", "%b %d, %Y %I:%M %p")
+    
+    # Lieu
+    venue = match_block.select_one(".match-venue").get_text(strip=True)
+    city = match_block.select_one(".match-city").get_text(strip=True)
+    
+    # Équipes
+    team_divs = match_block.select("div.w-dyn-item > a.pages-link")
+    if len(team_divs) >= 2:
+        team1 = team_divs[0].select_one("div").get_text(strip=True)
+        team2 = team_divs[1].select_one("div").get_text(strip=True)
+    else:
+        team1 = team2 = "?"
+    
+    matches.append({
+        "dt": dt,
+        "venue": venue,
+        "city": city,
+        "team1": team1,
+        "team2": team2
+    })
 
-    try:
-        team1 = children[0].get_text(strip=True)
-        team2 = children[1].get_text(strip=True)
-        dt_text = children[2].get_text(strip=True)  # par ex. "Oct 3, 2025 4:00 PM"
-        venue = children[3].get_text(strip=True)
-        city = children[4].get_text(strip=True)
-
-        dt = datetime.strptime(dt_text, "%b %d, %Y %I:%M %p")  # US format
-        dt = pytz.timezone("America/Los_Angeles").localize(dt)  # changer si besoin
-        dt = dt.astimezone(pytz.timezone("Europe/Paris"))
-
-        matches.append({
-            "team1": team1,
-            "team2": team2,
-            "dt": dt,
-            "venue": venue,
-            "city": city
-        })
-    except Exception as e:
-        print("Erreur match:", e)
-
-# Générer l'ICS
-lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH"
-]
+# Créer le fichier ICS
+lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//MLTT//2025//FR"]
 
 for m in matches:
     dtstart = m["dt"].strftime("%Y%m%dT%H%M%S")

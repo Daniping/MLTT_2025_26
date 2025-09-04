@@ -166,7 +166,7 @@ def scrape_and_build_ics():
 
     lines.append("END:VCALENDAR")
 
-print("Matchs trouvés :", matches)
+    print("Matchs trouvés :", matches)
 
     with open(OUT_ICS, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")

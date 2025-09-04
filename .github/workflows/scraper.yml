@@ -18,11 +18,10 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install playwright ics pytz
-          playwright install
+      - - name: Installer dépendances Python
+      run: |
+        python -m pip install --upgrade pip
+        pip install beautifulsoup4 icalendar requests
 
       - name: Run MLTT scraper
         run: python MLTT_scraper.py

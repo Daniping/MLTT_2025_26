@@ -1,29 +1,29 @@
-
-            (function(w, d, s, l, i) {
-                w[l] = w[l] || [];
-                w[l].push({
-                    'gtm.start': new Date().getTime(),
-                    event: 'gtm.js'
-                });
-                var f = d.getElementsByTagName(s)[0]
-                  , j = d.createElement(s)
-                  , dl = l != 'dataLayer' ? '&l=' + l : '';
-                j.async = true;
-                j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
-                f.parentNode.insertBefore(j, f);
-            }
-            )(window, document, 'script', 'dataLayer', 'GTM-W4RN3H57');
-        </script>
-        <!-- End Google Tag Manager -->
-        <script src="https://cdn.prod.website-files.com/687762138fa2e035f9b325fc%2F64cb5216d4f6301b8613e797%2F6878812538f36c1b9a528724%2Fshopyflow_auto_install-1.0.2.js" type="text/javascript" data-shop-id="gid://shopify/Shop/62233837634"></script>
-        <script type="text/javascript">
-            window.__WEBFLOW_CURRENCY_SETTINGS = {
-                "currencyCode": "USD",
-                "symbol": "$",
-                "decimal": ".",
-                "fractionDigits": 2,
-                "group": ",",
-                "template": "{{wf {\"path\":\"symbol\",\"type\":\"PlainText\"} }} {{wf {\"path\":\"amount\",\"type\":\"CommercePrice\"} }} {{wf {\"path\":\"currencyCode\",\"type\":\"PlainText\"} }}",
-                "hideDecimalForWholeNumbers": false
-            };
-        </script>
+div role="list" class="w-dyn-items">
+                                                                <div role="listitem" class="w-dyn-item">
+                                                                    <a href="/mltt-team/portland-paddlers" class="pages-link w-inline-block">
+                                                                        <img src="https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a11_PRIMARY-BLACK-OUTLINE.png.avif" loading="lazy" alt="" sizes="100vw" srcset="https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a11_PRIMARY-BLACK-OUTLINE.png-p-500.avif 500w, https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a11_PRIMARY-BLACK-OUTLINE.png-p-800.avif 800w, https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a11_PRIMARY-BLACK-OUTLINE.png-p-1080.avif 1080w, https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a11_PRIMARY-BLACK-OUTLINE.png-p-1600.avif 1600w, https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a11_PRIMARY-BLACK-OUTLINE.png.avif 4218w" class="image-5"/>
+                                                                        <div>Portland Paddlers</div>
+                                                                    </a>
+                                                                </div>
+                                                                <div role="listitem" class="w-dyn-item">
+                                                                    <a href="/mltt-team/texas-smash" class="pages-link w-inline-block">
+                                                                        <img src="https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a12_PRIMARY-WHITE-OUTLINE.avif" loading="lazy" alt="" sizes="100vw" srcset="https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a12_PRIMARY-WHITE-OUTLINE-p-500.png 500w, https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a12_PRIMARY-WHITE-OUTLINE-p-800.avif 800w, https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a12_PRIMARY-WHITE-OUTLINE.avif 2793w" class="image-5"/>
+                                                                        <div>Texas Smash</div>
+                                                                    </a>
+                                                                </div>
+                                                                <div role="listitem" class="w-dyn-item">
+                                                                    <a href="/mltt-team/los-angeles-spinners" class="pages-link w-inline-block">
+                                                                        <img src="https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a13_PRIMARY-NO-OUTLINE.avif" loading="lazy" alt="" sizes="100vw" srcset="https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a13_PRIMARY-NO-OUTLINE-p-500.avif 500w, https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a13_PRIMARY-NO-OUTLINE.avif 1920w" class="image-5"/>
+                                                                        <div>Los Angeles Spinners</div>
+                                                                    </a>
+                                                                </div>
+                                                                <div role="listitem" class="w-dyn-item">
+                                                                    <a href="/mltt-team/bay-area-blasters" class="pages-link w-inline-block">
+                                                                        <img src="https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a14_PRIMARY-BLACK-OUTLINE.avif" loading="lazy" alt="" sizes="100vw" srcset="https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a14_PRIMARY-BLACK-OUTLINE-p-500.avif 500w, https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a14_PRIMARY-BLACK-OUTLINE-p-800.avif 800w, https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a14_PRIMARY-BLACK-OUTLINE-p-1080.avif 1080w, https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a14_PRIMARY-BLACK-OUTLINE.avif 3300w" class="image-5"/>
+                                                                        <div>Bay Area Blasters</div>
+                                                                    </a>
+                                                                </div>
+                                                                <div role="listitem" class="w-dyn-item">
+                                                                    <a href="/mltt-team/chicago-wind" class="pages-link w-inline-block">
+                                                                        <img src="https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a15_PRIMARY-NO-OUTLINE.avif" loading="lazy" alt="" sizes="100vw" srcset="https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a15_PRIMARY-NO-OUTLINE-p-500.avif 500w, https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a15_PRIMARY-NO-OUTLINE-p-800.avif 800w, https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a15_PRIMARY-NO-OUTLINE-p-1080.avif 1080w, https://cdn.prod.website-files.com/687762138fa2e035f9b3260b/687762138fa2e035f9b32a15_PRIMARY-NO-OUTLINE.avif 3817w" class="image-5"/>
+                                                                        <div>Chicago Wind<

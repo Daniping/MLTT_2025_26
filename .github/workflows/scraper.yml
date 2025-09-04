@@ -25,7 +25,7 @@ jobs:
       run: python MLTT_scraper.py
 
     - name: Upload MLTT ICS artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: MLTT-2025-26
         path: MLTT_2025_26.ics

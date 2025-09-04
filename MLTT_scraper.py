@@ -1,57 +1,64 @@
 from playwright.sync_api import sync_playwright
-from bs4 import BeautifulSoup
+from ics import Calendar, Event
 from datetime import datetime
 import pytz
+import os
 
-OUT_ICS = "MLTT_2025_26.ics"
 URL = "https://mltt.com/league/schedule"
+OUT_ICS = "MLTT_2025_26.ics"
+TIMEZONE = "US/Pacific"
 
-lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//MLTT 2025-26//EN"
-]
+def main():
+    calendar = Calendar()
+    matches = []
 
-with sync_playwright() as p:
-    browser = p.chromium.launch()
-    page = browser.new_page()
-    page.goto(URL)
-    html = page.content()
-    browser.close()
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.goto(URL)
+        page.wait_for_selector(".future-match-single-top-wrap", timeout=10000)  # Attendre que les matchs soient chargés
 
-soup = BeautifulSoup(html, "html.parser")
+        match_blocks = page.query_selector_all(".schedule-for-mobile > .future-match-single-top-wrap")
+        print(f"[DEBUG] Nombre de matchs trouvés: {len(match_blocks)}")
 
-matches = soup.select("div.schedule-for-mobile")  # bloc de chaque match
+        for block in match_blocks:
+            try:
+                teams = block.query_selector_all(".schedule-team-logo + div")
+                team1 = teams[0].inner_text().strip() if len(teams) > 0 else "?"
+                team2 = teams[1].inner_text().strip() if len(teams) > 1 else "?"
+                
+                date_text = block.query_selector(".future-match-game-title").inner_text().strip()
+                venue = block.query_selector("h3.mb-0").inner_text().strip()
+                
+                matches.append({
+                    "team1": team1,
+                    "team2": team2,
+                    "date": date_text,
+                    "venue": venue
+                })
+            except Exception as e:
+                print(f"[WARN] Erreur parsing match: {e}")
 
-for match_block in matches:
-    try:
-        team_imgs = match_block.select("div.schedule-team-logo img")
-        team1 = team_imgs[0]["alt"] if len(team_imgs) > 0 else "?"
-        team2 = team_imgs[1]["alt"] if len(team_imgs) > 1 else "?"
-        date_str = match_block.select_one("h3.future-match-game-title").get_text(strip=True)
-        venue = match_block.select_one("h3.future-match-game-title.mb-0").get_text(strip=True)
-        
-        # conversion date
+        browser.close()
+
+    # Convertir les dates et générer le .ics
+    tz = pytz.timezone(TIMEZONE)
+    for m in matches:
         try:
-            dt = datetime.strptime(date_str, "%b %d, %Y %I:%M %p")
-            dt = pytz.timezone("US/Pacific").localize(dt)
-            dt_utc = dt.astimezone(pytz.utc)
-            dt_str = dt_utc.strftime("%Y%m%dT%H%M%SZ")
-        except Exception:
-            dt_str = ""
-        
-        lines.append("BEGIN:VEVENT")
-        lines.append(f"SUMMARY:{team1} vs {team2}")
-        if dt_str:
-            lines.append(f"DTSTART:{dt_str}")
-        lines.append(f"LOCATION:{venue}")
-        lines.append("END:VEVENT")
-    except Exception as e:
-        print("Erreur parsing match:", e)
+            dt = datetime.strptime(m["date"], "%b %d, %Y %I:%M %p")
+            dt = tz.localize(dt)
 
-lines.append("END:VCALENDAR")
+            event = Event()
+            event.name = f"{m['team1']} vs {m['team2']}"
+            event.begin = dt
+            event.location = m["venue"]
+            calendar.events.add(event)
+        except Exception as e:
+            print(f"[WARN] Erreur parsing date: {m['date']} - {e}")
 
-with open(OUT_ICS, "w", encoding="utf-8") as f:
-    f.write("\n".join(lines))
+    with open(OUT_ICS, "w", encoding="utf-8") as f:
+        f.writelines(calendar)
+    print(f"[OK] {OUT_ICS} écrit avec {len(calendar.events)} événements.")
 
-print(f"[OK] {OUT_ICS} écrit avec {len(matches)} matchs.")
+if __name__ == "__main__":
+    main()

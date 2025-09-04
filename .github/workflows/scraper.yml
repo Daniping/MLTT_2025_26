@@ -1,29 +1,33 @@
 name: Scraper MLTT
 
 on:
-  schedule:
-    - cron: '0 11 * * 1'  # Tous les lundis à 12h heure de Paris (11h UTC)
   workflow_dispatch:
+  schedule:
+    - cron: "0 12 * * *"  # tous les jours à 12h UTC
 
 jobs:
-  build:
+  scrape:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - name: Install deps
+        run: |
+          pip install playwright beautifulsoup4 pytz
+          playwright install --with-deps chromium
 
       - name: Run scraper
         run: python MLTT_scraper.py
 
-      - name: Upload ICS
+      - name: Upload ICS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MLTT_ICS
-          path: MLTT_2025_26_V5.ics
+          name: MLTT_calendar
+          path: MLTT_2025_26.ics

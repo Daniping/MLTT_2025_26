@@ -27,6 +27,3 @@ jobs:
         with:
           name: MLTT_ICS
           path: MLTT_2025_26_V5.ics
-
-      - name: Run teams scraper
-      run: python MLTT_scraper_teams_only.py

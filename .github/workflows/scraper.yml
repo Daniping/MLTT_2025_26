@@ -1,6 +1,8 @@
 name: MLTT Scraper
 
 on:
+  schedule:
+    - cron: "0 0 * * *"  # Tous les jours à minuit UTC
   workflow_dispatch:
 
 jobs:
@@ -8,24 +10,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
 
-    - name: Install dependencies
-      run: |
-        pip install playwright bs4 pytz
-        playwright install
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright ics pytz
+          playwright install
 
-    - name: Run MLTT scraper
-      run: python MLTT_scraper.py
+      - name: Run MLTT scraper
+        run: python MLTT_scraper.py
 
-    - name: Upload MLTT ICS artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: MLTT-2025-26
-        path: MLTT_2025_26.ics
+      - name: Upload ICS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mltt-ics
+          path: MLTT_2025_26.ics

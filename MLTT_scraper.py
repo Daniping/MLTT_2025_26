@@ -1,73 +1,83 @@
-from playwright.sync_api import sync_playwright
+import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 import pytz
 
-URL = "https://mltt.com/league/schedule"
+URL = "https://mltt.com/league/schedule"  # Remplace par la bonne URL si besoin
 OUT_ICS = "MLTT_2025_26.ics"
 
-def main():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(URL)
-        page.wait_for_timeout(5000)  # attendre 5 sec pour que le JS charge
+def parse_match_date(date_str):
+    """Parse une date au format 'Sep 5, 2025 4:00 PM PT' en datetime aware Paris"""
+    try:
+        date_clean = date_str.replace(" PT", "")
+        dt_naive = datetime.strptime(date_clean, "%b %d, %Y %I:%M %p")
+        pacific = pytz.timezone("US/Pacific")
+        dt_aware = pacific.localize(dt_naive)
+        return dt_aware
+    except Exception as e:
+        print(f"[WARN] Erreur parsing date: {date_str} -> {e}")
+        return None
 
-        html = page.content()
-        browser.close()
+# Récupérer la page
+resp = requests.get(URL)
+resp.raise_for_status()
+soup = BeautifulSoup(resp.text, "html.parser")
+print(f"[INFO] Page récupérée, longueur HTML: {len(resp.text)}")
 
-    soup = BeautifulSoup(html, "html.parser")
-    matches = soup.select("div.future-match-single-top-wrap")
+# Récupérer les blocs de matchs
+match_blocks = soup.select(".future-match-single-top-wrap")
+print(f"[DEBUG] Nombre de blocs match trouvés: {len(match_blocks)}")
 
-    print(f"[DEBUG] Nombre de matchs trouvés: {len(matches)}")
+matches = []
 
-    events = []
-    for match in matches:
-        try:
-            teams = match.select("div.schedule-team-logo img")
-            if len(teams) >= 2:
-                team1 = teams[0]["alt"] or "?"
-                team2 = teams[1]["alt"] or "?"
-            else:
-                team1, team2 = "?", "?"
+for block in match_blocks:
+    try:
+        # Équipes
+        team_imgs = block.select(".schedule-team-logo img")
+        team1 = team_imgs[0]["alt"] if len(team_imgs) > 0 else "?"
+        team2 = team_imgs[1]["alt"] if len(team_imgs) > 1 else "?"
 
-            date_block = match.select("h3.future-match-game-title")
-            date_str = date_block[0].get_text(strip=True) + " " + date_block[1].get_text(strip=True)
-            venue = date_block[2].get_text(strip=True)
+        # Date et heure
+        date_elem = block.select_one(".future-match-game-title")
+        date_str = date_elem.get_text(strip=True) if date_elem else ""
+        dt = parse_match_date(date_str)
+        if not dt:
+            continue
 
-            try:
-                dt = datetime.strptime(date_str, "%b %d, %Y %I:%M %p %Z")
-            except Exception:
-                print(f"[WARN] Erreur parsing date: {date_str}")
-                continue
+        # Lieu
+        venue_elem = block.select(".future-match-game-title")
+        venue = venue_elem[1].get_text(strip=True) if len(venue_elem) > 1 else "?"
 
-            tz = pytz.timezone("US/Pacific")
-            dt = tz.localize(dt)
-            dt_utc = dt.astimezone(pytz.utc)
+        matches.append({
+            "team1": team1,
+            "team2": team2,
+            "dt": dt,
+            "venue": venue,
+            "city": "Paris"  # Ajuste si tu as la ville exacte
+        })
+    except Exception as e:
+        print(f"[ERROR] Erreur match: {e}")
 
-            event = {
-                "summary": f"{team1} vs {team2}",
-                "dtstart": dt_utc.strftime("%Y%m%dT%H%M%SZ"),
-                "dtend": (dt_utc).strftime("%Y%m%dT%H%M%SZ"),
-                "location": venue,
-            }
-            events.append(event)
-        except Exception as e:
-            print(f"[ERROR] {e}")
+# Générer ICS
+lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//MLTT 2025-26//EN"
+]
 
-    # --- écrire ICS ---
-    with open(OUT_ICS, "w") as f:
-        f.write("BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//MLTT//EN\n")
-        for ev in events:
-            f.write("BEGIN:VEVENT\n")
-            f.write(f"SUMMARY:{ev['summary']}\n")
-            f.write(f"DTSTART:{ev['dtstart']}\n")
-            f.write(f"DTEND:{ev['dtend']}\n")
-            f.write(f"LOCATION:{ev['location']}\n")
-            f.write("END:VEVENT\n")
-        f.write("END:VCALENDAR\n")
+paris = pytz.timezone("Europe/Paris")
 
-    print(f"[OK] {OUT_ICS} écrit avec {len(events)} événements.")
+for m in matches:
+    dtstart = m["dt"].astimezone(paris).strftime("%Y%m%dT%H%M%S")
+    lines.append("BEGIN:VEVENT")
+    lines.append(f"SUMMARY:{m['team1']} vs {m['team2']}")
+    lines.append(f"DTSTART;TZID=Europe/Paris:{dtstart}")
+    lines.append(f"LOCATION:{m['venue']}, {m['city']}")
+    lines.append("END:VEVENT")
 
-if __name__ == "__main__":
-    main()
+lines.append("END:VCALENDAR")
+
+with open(OUT_ICS, "w", encoding="utf-8") as f:
+    f.write("\n".join(lines) + "\n")
+
+print(f"[OK] Fichier {OUT_ICS} écrit avec {len(matches)} événements.")

@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import pytz
 
-URL = "https://mltt.com/league/schedule"  # Remplace par la bonne URL si besoin
+URL = "https://mltt.com/league/schedule"
 OUT_ICS = "MLTT_2025_26_V5.ics"
 
 # Récupérer la page
@@ -13,36 +13,47 @@ soup = BeautifulSoup(resp.text, "html.parser")
 
 matches = []
 
-# Exemple de sélecteurs pour récupérer dates, lieux et équipes
+# Boucle sur chaque match
 for match_block in soup.select(".future-match-single-wrap"):
-    date_text = match_block.select_one(".future-match-game-title").text.strip()
-    venue_text = match_block.select_one(".city-state").text.strip()
-    teams = [t.text.strip() for t in match_block.select("div.schedule-team-logo + div")]
+    # Date et heure
+    date_elem = match_block.select_one(".future-match-game-title")
+    date_str = date_elem.text.strip() if date_elem else ""
+    try:
+        dt = datetime.strptime(date_str, "%b %d, %Y %I:%M %p")
+        dt = pytz.timezone("America/Los_Angeles").localize(dt)  # Ajuster selon fuseau MLTT
+        dt = dt.astimezone(pytz.timezone("Europe/Paris"))
+    except:
+        dt = None
 
-    dt = datetime.strptime(date_text, "%b %d, %Y %I:%M %p")  # ex: "Oct 3, 2025 4:00 PM"
-    dt = pytz.timezone("America/Los_Angeles").localize(dt)   # à adapter si nécessaire
-    dt_paris = dt.astimezone(pytz.timezone("Europe/Paris"))
+    # Lieu
+    city_elem = match_block.select_one(".city-state")
+    venue_elem = match_block.select_one(".future-match-game-title + .city-state")
+    city = city_elem.text.strip() if city_elem else "?"
+    venue = venue_elem.text.strip() if venue_elem else "?"
 
-    match = {
-        "dt": dt_paris,
-        "venue": venue_text,
-        "city": "",  # ajouter si séparé
-        "team1": teams[0] if len(teams) > 0 else "Unknown",
-        "team2": teams[1] if len(teams) > 1 else "Unknown",
-    }
-    matches.append(match)
+    # Equipes
+    team_divs = match_block.select(".future-match-single-clab-details div.schedule-team-logo + div")
+    team1 = team_divs[0].text.strip() if len(team_divs) > 0 else "?"
+    team2 = team_divs[1].text.strip() if len(team_divs) > 1 else "?"
 
-# Générer ICS
-lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//MLTT//2025-26 Schedule//FR"]
+    matches.append({
+        "team1": team1,
+        "team2": team2,
+        "dt": dt,
+        "venue": venue,
+        "city": city
+    })
 
+# Génération ICS
+lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//MLTT//Schedule//FR"]
 for m in matches:
-    dtstart = m["dt"].strftime("%Y%m%dT%H%M%S")
-    lines.append("BEGIN:VEVENT")
-    lines.append(f"SUMMARY:{m['team1']} vs {m['team2']}")
-    lines.append(f"DTSTART;TZID=Europe/Paris:{dtstart}")
-    lines.append(f"LOCATION:{m['venue']}, {m['city']}")
-    lines.append("END:VEVENT")
-
+    if m["dt"]:
+        dtstart = m["dt"].strftime("%Y%m%dT%H%M%S")
+        lines.append("BEGIN:VEVENT")
+        lines.append(f"SUMMARY:{m['team1']} vs {m['team2']}")
+        lines.append(f"DTSTART;TZID=Europe/Paris:{dtstart}")
+        lines.append(f"LOCATION:{m['venue']}, {m['city']}")
+        lines.append("END:VEVENT")
 lines.append("END:VCALENDAR")
 
 with open(OUT_ICS, "w", encoding="utf-8") as f:

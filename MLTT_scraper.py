@@ -1,64 +1,36 @@
-from playwright.sync_api import sync_playwright
-from ics import Calendar, Event
+from bs4 import BeautifulSoup
 from datetime import datetime
 import pytz
-import os
 
-URL = "https://mltt.com/league/schedule"
-OUT_ICS = "MLTT_2025_26.ics"
-TIMEZONE = "US/Pacific"
+# Supposons que 'html_content' contient ton HTML récupéré avec Playwright ou requests
+soup = BeautifulSoup(html_content, "html.parser")
 
-def main():
-    calendar = Calendar()
-    matches = []
+matches = []
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
-        page.goto(URL)
-        page.wait_for_selector(".future-match-single-top-wrap", timeout=10000)  # Attendre que les matchs soient chargés
+# Chaque match est dans un bloc 'future-match-single-top-wrap'
+for match_block in soup.select(".future-match-single-top-wrap"):
+    team_divs = match_block.select(".future-match-single-details-wrap .schedule-team-logo div")
+    
+    if len(team_divs) >= 2:
+        team1 = team_divs[0].get_text(strip=True)
+        team2 = team_divs[1].get_text(strip=True)
+        
+        # Récupérer date et lieu si nécessaire
+        date_div = match_block.select_one(".future-match-game-title")
+        venue_div = match_block.select_one(".future-match-game-title.mb-0")
+        
+        date_str = date_div.get_text(strip=True) if date_div else "Unknown date"
+        venue = venue_div.get_text(strip=True) if venue_div else "Unknown venue"
 
-        match_blocks = page.query_selector_all(".schedule-for-mobile > .future-match-single-top-wrap")
-        print(f"[DEBUG] Nombre de matchs trouvés: {len(match_blocks)}")
+        matches.append({
+            "team1": team1,
+            "team2": team2,
+            "date": date_str,
+            "venue": venue
+        })
+    else:
+        print("Erreur parsing match: équipes manquantes")
 
-        for block in match_blocks:
-            try:
-                teams = block.query_selector_all(".schedule-team-logo + div")
-                team1 = teams[0].inner_text().strip() if len(teams) > 0 else "?"
-                team2 = teams[1].inner_text().strip() if len(teams) > 1 else "?"
-                
-                date_text = block.query_selector(".future-match-game-title").inner_text().strip()
-                venue = block.query_selector("h3.mb-0").inner_text().strip()
-                
-                matches.append({
-                    "team1": team1,
-                    "team2": team2,
-                    "date": date_text,
-                    "venue": venue
-                })
-            except Exception as e:
-                print(f"[WARN] Erreur parsing match: {e}")
-
-        browser.close()
-
-    # Convertir les dates et générer le .ics
-    tz = pytz.timezone(TIMEZONE)
-    for m in matches:
-        try:
-            dt = datetime.strptime(m["date"], "%b %d, %Y %I:%M %p")
-            dt = tz.localize(dt)
-
-            event = Event()
-            event.name = f"{m['team1']} vs {m['team2']}"
-            event.begin = dt
-            event.location = m["venue"]
-            calendar.events.add(event)
-        except Exception as e:
-            print(f"[WARN] Erreur parsing date: {m['date']} - {e}")
-
-    with open(OUT_ICS, "w", encoding="utf-8") as f:
-        f.writelines(calendar)
-    print(f"[OK] {OUT_ICS} écrit avec {len(calendar.events)} événements.")
-
-if __name__ == "__main__":
-    main()
+# Vérifions le résultat
+for m in matches:
+    print(m)

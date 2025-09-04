@@ -66,7 +66,7 @@ def generate_ics(matches):
         lines.append(f"DTSTART;TZID=Europe/Paris:{dtstart}")
         lines.append(f"LOCATION:{m['venue']}, {m['city']}")
 
-lines.append("END:VEVENT")
+        lines.append("END:VEVENT")
 
 lines.append("END:VCALENDAR")
 

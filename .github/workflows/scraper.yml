@@ -18,9 +18,10 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install deps
-        run: |
-          pip install playwright beautifulsoup4 pytz
+      - - name: Installer les dépendances Python
+  run: |
+    /opt/hostedtoolcache/Python/3.11.13/x64/bin/python -m pip install --upgrade pip
+    /opt/hostedtoolcache/Python/3.11.13/x64/bin/python -m pip install playwright requests beautifulsoup4 pytz
           playwright install --with-deps chromium
 
       - name: Run scraper

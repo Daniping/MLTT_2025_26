@@ -3,45 +3,38 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import pytz
 
-URL = "https://www.mltt.com/league/schedule"
+# --- Variables ---
 OUT_ICS = "MLTT_2025_26_V5.ics"
-PARIS_TZ = pytz.timezone("Europe/Paris")
-
-# --- Récupération de la page ---
-resp = requests.get(URL)
-resp.raise_for_status()
-soup = BeautifulSoup(resp.text, "html.parser")
+with open("mltt_page.html", encoding="utf-8") as f:  # Page HTML récupérée
+    soup = BeautifulSoup(f, "html.parser")
 
 matches = []
 
 # --- Extraction des matchs ---
 for match_block in soup.select(".future-match-single-wrap"):
     try:
-        # Heure et lieu
-        date_str = match_block.select_one(".future-match-game-title").get_text(strip=True)
-        dt_utc = datetime.strptime(date_str, "%b %d, %Y %I:%M %p").replace(tzinfo=pytz.UTC)
-        dt_paris = dt_utc.astimezone(PARIS_TZ)
-        
-        city = match_block.select_one(".future-match-game-title.city-state").get_text(strip=True)
-        venue = match_block.select(".future-match-game-title.city-state")[1].get_text(strip=True)
-        
-        # Équipes
-        logos = match_block.select(".future-match-single-clab-details .schedule-team-logo img")
-        team1 = logos[0]["alt"]
-        team2 = logos[1]["alt"]
+        dt_str = match_block.select_one(".future-match-game-title").text.strip()
+        dt = datetime.strptime(dt_str, "%b %d, %Y %I:%M %p")
+        dt = pytz.timezone("America/Los_Angeles").localize(dt).astimezone(pytz.timezone("Europe/Paris"))
+
+        venue = match_block.select_one(".city-state:nth-of-type(1)").text.strip()
+        city = match_block.select_one(".city-state:nth-of-type(2)").text.strip()
+
+        team1 = match_block.select_one("div.w-dyn-list > div > div:nth-child(1) > a > div").text.strip()
+        team2 = match_block.select_one("div.w-dyn-list > div > div:nth-child(2) > a > div").text.strip()
 
         matches.append({
-            "dt": dt_paris,
-            "city": city,
+            "dt": dt,
             "venue": venue,
+            "city": city,
             "team1": team1,
             "team2": team2
         })
     except Exception as e:
-        print(f"[WARN] Ignored a match block: {e}")
+        print(f"[WARN] Ignored a match due to error: {e}")
 
 # --- Génération ICS ---
-lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//MLTT//MLTT Calendar//FR"]
+lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//MLTT//MLTT Calendar 2025-26//FR"]
 
 for m in matches:
     dtstart = m["dt"].strftime("%Y%m%dT%H%M%S")

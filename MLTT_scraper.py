@@ -1,38 +1,64 @@
 import requests
 from bs4 import BeautifulSoup
+from datetime import datetime
+import pytz
 
-URL = "https://mltt.com/league/schedule"  # URL du calendrier MLTT
+URL = "https://mltt.com/league/schedule"
+OUT_ICS = "MLTT_2025_26.ics"
 
-# Récupérer la page
+# Récupération de la page
 resp = requests.get(URL)
 resp.raise_for_status()
 soup = BeautifulSoup(resp.text, "html.parser")
 
-# Récupérer toutes les équipes dans l'ordre du dropdown
-team_divs = soup.select(".pages-drop-down-single-wrap .w-dyn-item div")
-teams = [d.get_text(strip=True) for d in team_divs]
+matches = soup.select(".future-match-single-top-wrap")
 
-print("Toutes les équipes trouvées :")
-for t in teams:
-    print("-", t)
+ics_events = []
 
-# Récupérer les blocs de matchs
-match_blocks = soup.select(".future-match-single-wrap")
+for match in matches:
+    # Récupérer les équipes
+    teams = match.select(".future-match-single-details-wrap .schedule-team-logo img")
+    team1 = teams[0].get("alt", "?") if len(teams) > 0 else "?"
+    team2 = teams[1].get("alt", "?") if len(teams) > 1 else "?"
 
-matches = []
-for mb in match_blocks:
+    # Infos du match
+    details = match.select(".future-match-vs-wrap h3.future-match-game-title")
+    date_time = details[0].get_text(strip=True) if len(details) > 0 else "?"
+    timezone = details[1].get_text(strip=True) if len(details) > 1 else "?"
+    location = details[2].get_text(strip=True) if len(details) > 2 else "?"
+
+    # Conversion de la date
     try:
-        # Les indices ou informations dans le HTML qui pointent vers les équipes
-        idx1 = int(mb.get("data-team1-index", -1))
-        idx2 = int(mb.get("data-team2-index", -1))
-        
-        team1 = teams[idx1] if 0 <= idx1 < len(teams) else "?"
-        team2 = teams[idx2] if 0 <= idx2 < len(teams) else "?"
-        
-        matches.append({"team1": team1, "team2": team2})
+        dt_naive = datetime.strptime(date_time, "%b %d, %Y %I:%M %p")
+        tz_map = {
+            "PT": "US/Pacific",
+            "ET": "US/Eastern",
+            "CT": "US/Central",
+            "MT": "US/Mountain"
+        }
+        tz = pytz.timezone(tz_map.get(timezone, "UTC"))
+        dt = tz.localize(dt_naive)
+        dt_end = dt + timedelta(hours=2)  # Match ≈ 2h
     except Exception as e:
-        print("Erreur match:", e)
+        print(f"Erreur parsing date: {date_time} {timezone}")
+        continue
 
-print("\nMatchs récupérés :")
-for m in matches:
-    print(m["team1"], "vs", m["team2"])
+    # Format ICS
+    ics_event = f"""BEGIN:VEVENT
+SUMMARY:{team1} vs {team2}
+DTSTART:{dt.strftime("%Y%m%dT%H%M%S")}
+DTEND:{dt_end.strftime("%Y%m%dT%H%M%S")}
+LOCATION:{location}
+END:VEVENT
+"""
+    ics_events.append(ics_event)
+
+# Génération du fichier ICS
+ics_content = "BEGIN:VCALENDAR\nVERSION:2.0\nCALSCALE:GREGORIAN\n"
+ics_content += "".join(ics_events)
+ics_content += "END:VCALENDAR\n"
+
+with open(OUT_ICS, "w", encoding="utf-8") as f:
+    f.write(ics_content)
+
+print(f"[OK] Fichier {OUT_ICS} écrit avec {len(ics_events)} événements")

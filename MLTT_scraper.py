@@ -7,6 +7,11 @@ URL = "https://www.mltt.com/schedule"
 response = requests.get(URL)
 soup = BeautifulSoup(response.text, "html.parser")
 
+print("Page récupérée, longueur HTML:", len(response.text))
+
+blocks = soup.select(".future-match-single-top-wrap")
+print("Nombre de blocs match trouvés:", len(blocks))
+
 matches = []
 
 for block in soup.select(".future-match-single-top-wrap"):

@@ -1,2 +1,3 @@
-- name: Run teams scraper
-  run: python MLTT_scraper_teams_only.py
+      - name: Run teams scraper
+      run: python 
+      MLTT_scraper_teams_only.py

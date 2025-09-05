@@ -1,3 +1,6 @@
+
+
+
 name: MLTT Scraper
 
 on:
@@ -8,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
@@ -22,8 +25,9 @@ jobs:
           pip install playwright
           playwright install
 
-      - name: Run MLTT scraper
-        run: python MLTT_scraper.py
+      - name: Clear existing ICS file
+        run: |
+          echo "" > MLTT_2025_26_V5.ics
 
-      - name: Show first lines of ICS
-        run: head -n 20 MLTT_2025_26_V5.ics
+      - name: Run scraper
+        run: python MLTT_scraper.py

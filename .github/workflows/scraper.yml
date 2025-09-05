@@ -1,35 +1,29 @@
-name: Scraper MLTT
+name: MLTT Scraper
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 6 * * *"
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: 3.11
 
       - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install playwright
-          playwright install chromium
+          playwright install
 
-      - name: Run scraper
+      - name: Run MLTT scraper
         run: python MLTT_scraper.py
 
-      - name: Show matches in logs
-        run: cat MLTT_2025_26
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: MLTT_2025_26
-          path: MLTT_2025_26
+      - name: Show first lines of ICS
+        run: head -n 20 MLTT_2025_26_V5.ics

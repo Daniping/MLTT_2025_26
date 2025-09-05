@@ -9,7 +9,7 @@ from playwright.sync_api import sync_playwright
 from datetime import datetime
 import os
 
-OUTPUT_FILE = "MLTT_2025_26_V5.ICS"
+OUTPUT_FILE = "MLTT_2025_26_V5.ics"
 
 def fetch_matches():
     url = "https://mltt.com/league/schedule"

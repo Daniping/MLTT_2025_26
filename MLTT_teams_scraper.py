@@ -1,47 +1,37 @@
-# ===========================================
-# MLTT_teams_scraper.py - Version 1.1
-# Objectif : Scruter le site MLTT et récupérer
-# les équipes/logos via toutes les balises <img>
-# ===========================================
-
 from playwright.sync_api import sync_playwright
 import json
+import os
 
 OUTPUT_JSON = "MLTT_teams.json"
 
 def fetch_teams():
     url = "https://mltt.com/league/schedule"
-    teams = []
+    teams_data = []
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto(url, timeout=60000)
-        page.wait_for_timeout(5000)  # attendre que JS charge
+        page.wait_for_timeout(5000)  # attendre que JS charge tout
 
-        # Récupération de toutes les balises <img>
-        imgs = page.query_selector_all("img")
+        # Récupération des blocs de matchs
+        match_blocks = page.query_selector_all("div.future-match-single-top-wrap")
 
-        for img in imgs:
-            src = img.get_attribute("src") or ""
-            alt = img.get_attribute("alt") or ""
-            # On garde seulement ce qui semble lié aux logos d’équipes
-            if "mltt" in src.lower() and (
-                "logo" in src.lower()
-                or "team" in src.lower()
-                or "primary" in src.lower()
-                or "spinners" in src.lower()
-                or "wind" in src.lower()
-                or "pong" in src.lower()
-            ):
-                teams.append({
-                    "alt": alt.strip(),
-                    "src": src.strip()
+        for block in match_blocks:
+            team_imgs = block.query_selector_all("div.schedule-team-logo img")
+            for img in team_imgs:
+                alt = img.get_attribute("alt")
+                src = img.get_attribute("src")
+                teams_data.append({
+                    "alt": alt if alt else "",
+                    "src": src
                 })
 
         browser.close()
 
-    return teams
+    # Retirer les doublons
+    unique_teams = {t["src"]: t for t in teams_data}.values()
+    return list(unique_teams)
 
 if __name__ == "__main__":
     teams = fetch_teams()

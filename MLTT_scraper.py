@@ -1,21 +1,26 @@
 # ===========================================
-# MLTT_scraper.py - Version 3.0 (ICS en clair)
-# Objectif : Scraper les matchs MLTT et écrire
-# directement dans MLTT_2025_26_V5.ICS
+# MLTT_scraper.py - Version 5.0
+# Objectif : Récupérer les matchs MLTT et
+# les écrire dans MLTT_2025_26_V5.ICS
 # ===========================================
 
 from playwright.sync_api import sync_playwright
 from datetime import datetime
 import os
 
-OUTPUT_FILE = "MLTT_2025_26_V5.ICS"  # Ton fichier existant
+OUTPUT_ICS = "MLTT_2025_26_V5.ICS"
 
 TEAM_MAPPING = {
     "687762138fa2e035f9b328c8": "Princeton Revolution",
     "687762138fa2e035f9b328f1": "New York Slice",
     "687762138fa2e035f9b32901": "Carolina Gold Rush",
     "687762138fa2e035f9b32902": "Florida Crocs",
-    # ajouter d’autres mappings si besoin
+    "687762138fa2e035f9b32905": "Atlanta Blazers",
+    "687762138fa2e035f9b32a0f": "Portland Paddlers",
+    "685e2c34b9486ae92f5afa74": "Texas Smash",
+    "687762138fa2e035f9b329c6": "Los Angeles Spinners",
+    "687762138fa2e035f9b329c5": "Bay Area Blasters",
+    "687762138fa2e035f9b328f2": "Chicago Wind"
 }
 
 def fetch_matches():
@@ -26,20 +31,18 @@ def fetch_matches():
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto(url, timeout=60000)
-        page.wait_for_timeout(5000)
+        page.wait_for_timeout(5000)  # attendre JS
 
-        match_blocks = page.query_selector_all("div.future-match-single-top-wrap")
+        blocks = page.query_selector_all("div.future-match-single-top-wrap")
 
-        for block in match_blocks:
+        for block in blocks:
             # Date
             date_el = block.query_selector("h3.future-match-game-title")
             date_text = date_el.inner_text().strip() if date_el else "?"
-
             try:
                 date_obj = datetime.strptime(date_text, "%b %d, %Y %I:%M %p")
-                date_str = date_obj.isoformat()
             except Exception:
-                date_str = date_text
+                date_obj = None
 
             # Lieu
             venue_el = block.query_selector("h3.city-state")
@@ -49,32 +52,52 @@ def fetch_matches():
             team_imgs = block.query_selector_all("div.schedule-team-logo img")
             teams = []
             for img in team_imgs:
-                alt = img.get_attribute("alt")
                 src = img.get_attribute("src")
-                base = os.path.basename(src).split("_")[0] if src else "?"
-                team = TEAM_MAPPING.get(base, alt if alt else base)
-                teams.append(team)
+                base = os.path.basename(src).split("_")[0]
+                name = TEAM_MAPPING.get(base, base)
+                teams.append(name)
 
             team1 = teams[0] if len(teams) > 0 else "?"
             team2 = teams[1] if len(teams) > 1 else "?"
 
+            # Ticket
+            ticket_el = block.query_selector("a.primary-btn-link-wrap")
+            ticket = ticket_el.get_attribute("href") if ticket_el else None
+
             matches.append({
                 "team1": team1,
                 "team2": team2,
-                "date": date_str,
-                "venue": venue
+                "date": date_obj,
+                "venue": venue,
+                "ticket": ticket
             })
 
         browser.close()
     return matches
 
+def write_ics(matches):
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//MLTT Scraper//EN"
+    ]
+    for m in matches:
+        if not m["date"]:
+            continue
+        lines += [
+            "BEGIN:VEVENT",
+            f"SUMMARY:{m['team1']} vs {m['team2']}",
+            f"DTSTART:{m['date'].strftime('%Y%m%dT%H%M%S')}",
+            f"LOCATION:{m['venue']}",
+            f"DESCRIPTION:Tickets: {m['ticket']}" if m['ticket'] else "DESCRIPTION:",
+            "END:VEVENT"
+        ]
+    lines.append("END:VCALENDAR")
+
+    with open(OUTPUT_ICS, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+    print(f"[OK] {len(matches)} matchs écrits dans {OUTPUT_ICS}")
+
 if __name__ == "__main__":
     matches = fetch_matches()
-
-    print(f"[OK] Nombre de matchs trouvés: {len(matches)}")
-
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        for m in matches:
-            f.write(f"{m['date']} - {m['team1']} vs {m['team2']} @ {m['venue']}\n")
-
-    print(f"[OK] Données sauvegardées dans {OUTPUT_FILE}")
+    write_ics(matches)

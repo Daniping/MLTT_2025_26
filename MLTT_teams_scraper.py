@@ -1,38 +1,43 @@
+# ===========================================
+# MLTT_teams_scraper.py - Version 1.1
+# Objectif : Scruter le site MLTT et récupérer
+# les équipes/logos via toutes les balises <img>
+# ===========================================
+
 from playwright.sync_api import sync_playwright
 import json
-import os
 
 OUTPUT_JSON = "MLTT_teams.json"
 
 def fetch_teams():
-    url = "https://mltt.com/league/teams"  # ou la page qui liste toutes les équipes
+    url = "https://mltt.com/league/schedule"
     teams = []
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto(url, timeout=60000)
-        page.wait_for_timeout(5000)  # attendre que JS charge tout
+        page.wait_for_timeout(5000)  # attendre que JS charge
 
-        team_blocks = page.query_selector_all("div.w-dyn-item")
+        # Récupération de toutes les balises <img>
+        imgs = page.query_selector_all("img")
 
-        for block in team_blocks:
-            link_el = block.query_selector("a.pages-link")
-            href = link_el.get_attribute("href") if link_el else None
-
-            img_el = block.query_selector("img")
-            img_src = img_el.get_attribute("src") if img_el else None
-            img_alt = img_el.get_attribute("alt") if img_el else None
-
-            text_el = block.query_selector("div")
-            name_text = text_el.inner_text().strip() if text_el else None
-
-            teams.append({
-                "id": href,
-                "logo_src": img_src,
-                "logo_alt": img_alt,
-                "name": name_text
-            })
+        for img in imgs:
+            src = img.get_attribute("src") or ""
+            alt = img.get_attribute("alt") or ""
+            # On garde seulement ce qui semble lié aux logos d’équipes
+            if "mltt" in src.lower() and (
+                "logo" in src.lower()
+                or "team" in src.lower()
+                or "primary" in src.lower()
+                or "spinners" in src.lower()
+                or "wind" in src.lower()
+                or "pong" in src.lower()
+            ):
+                teams.append({
+                    "alt": alt.strip(),
+                    "src": src.strip()
+                })
 
         browser.close()
 

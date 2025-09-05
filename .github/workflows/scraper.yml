@@ -2,8 +2,6 @@ name: MLTT Scraper
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 0 * * *'  # tous les jours à minuit UTC, optionnel
 
 jobs:
   scrape:

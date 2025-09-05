@@ -1,9 +1,7 @@
-name: Run MLTT Scraper v2.0
+name: MLTT Scraper Workflow
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 6 * * *"  # tous les jours à 6h UTC
 
 jobs:
   scrape:
@@ -13,22 +11,35 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: 3.11
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install playwright
-          playwright install --with-deps chromium
+          playwright install
 
-      - name: Run scraper
-        run: python MLTT_scraper.py
-
-      - name: Upload JSON artifact
+      # Étape 1 : Scraper les équipes
+      - name: Run Teams Scraper
+        run: |
+          python MLTT_teams_scraper.py
+          
+      - name: Upload Teams JSON
         uses: actions/upload-artifact@v4
         with:
-          name: MLTT_matches_v2.0
+          name: MLTT_teams
+          path: MLTT_teams.json
+
+      # Étape 2 : Scraper les matchs
+      - name: Run Matches Scraper
+        run: |
+          python MLTT_scraper.py
+
+      - name: Upload Matches JSON
+        uses: actions/upload-artifact@v4
+        with:
+          name: MLTT_matches
           path: MLTT_matches.json

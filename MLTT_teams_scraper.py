@@ -57,7 +57,7 @@ def fetch_matches():
                 src = img.get_attribute("src")
                 # Extraction de l'identifiant du logo
                 base = os.path.basename(src).split(".")[0]
-base = base.replace("%20", "").split("(")[0].strip()
+                base = base.replace("%20", "").split("(")[0].strip()
                 name = TEAM_MAPPING.get(base, base)  # on prend le mapping sinon l'identifiant
                 teams.append(name)
 

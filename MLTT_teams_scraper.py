@@ -1,12 +1,16 @@
+# ===========================================
+# MLTT_teams_scraper.py
+# Objectif : Récupérer les identifiants/logos des équipes MLTT
+# ===========================================
+
 from playwright.sync_api import sync_playwright
 import json
-import os
 
 OUTPUT_JSON = "MLTT_teams.json"
 
 def fetch_teams():
     url = "https://mltt.com/league/schedule"
-    teams_data = []
+    teams = []
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -14,24 +18,20 @@ def fetch_teams():
         page.goto(url, timeout=60000)
         page.wait_for_timeout(5000)  # attendre que JS charge tout
 
-        # Récupération des blocs de matchs
-        match_blocks = page.query_selector_all("div.future-match-single-top-wrap")
+        # Sélection de tous les logos d'équipes
+        logo_elements = page.query_selector_all("div.schedule-team-logo img")
 
-        for block in match_blocks:
-            team_imgs = block.query_selector_all("div.schedule-team-logo img")
-            for img in team_imgs:
-                alt = img.get_attribute("alt")
-                src = img.get_attribute("src")
-                teams_data.append({
-                    "alt": alt if alt else "",
-                    "src": src
-                })
+        for img in logo_elements:
+            alt = img.get_attribute("alt")
+            src = img.get_attribute("src")
+            teams.append({
+                "alt": alt if alt else "",
+                "src": src
+            })
 
         browser.close()
 
-    # Retirer les doublons
-    unique_teams = {t["src"]: t for t in teams_data}.values()
-    return list(unique_teams)
+    return teams
 
 if __name__ == "__main__":
     teams = fetch_teams()

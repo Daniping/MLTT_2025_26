@@ -27,4 +27,4 @@ jobs:
           echo "" > MLTT_2025_26_V5.ics
 
       - name: Run scraper
-        run: python MLTT_scraper.py
+        run: python MLTT_scraper

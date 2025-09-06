@@ -1,0 +1,39 @@
+name: MLTT Scraper
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 12 * * *"   # tous les jours à 12h UTC
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}  # autorisation push
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4
+
+      - name: Run scraper
+        run: python MLTT_scraper.py
+
+      - name: Show updated file
+        run: cat MLTT_2025_26_V5.ics
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add MLTT_2025_26_V5.ics
+          git commit -m "Update MLTT_2025_26_V5.ics [skip ci]" || echo "No changes to commit"
+          git push

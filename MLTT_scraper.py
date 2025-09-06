@@ -1,8 +1,5 @@
-# MLTT_scraper.py - test écriture
-
-OUTPUT_FILE = "MLTT_2025_26_V5.ics"
-
-with open(OUTPUT_FILE, "a", encoding="utf-8") as f:  # "a" pour ajouter à la fin
+# MLTT_scraper.py
+with open("MLTT_2025_26_V5.ics", "a", encoding="utf-8") as f:
     f.write("bonjour\n")
 
-print(f"[OK] 'bonjour' écrit dans {OUTPUT_FILE}")
+print("[OK] Écriture terminée dans MLTT_2025_26_V5.ics")

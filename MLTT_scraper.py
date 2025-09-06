@@ -1,8 +1,8 @@
-# write_hello.py
+# MLTT_scraper.py - test écriture
 
-FILE_PATH = "MLTT_2025_26_V5.ics"
+OUTPUT_FILE = "MLTT_2025_26_V5.ics"
 
-with open(FILE_PATH, "w", encoding="utf-8") as f:
+with open(OUTPUT_FILE, "a", encoding="utf-8") as f:  # "a" pour ajouter à la fin
     f.write("bonjour\n")
 
-print(f"[OK] Écriture terminée dans {FILE_PATH}")
+print(f"[OK] 'bonjour' écrit dans {OUTPUT_FILE}")

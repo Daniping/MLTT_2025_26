@@ -3,9 +3,6 @@ name: MLTT Scraper
 on:
   workflow_dispatch:
 
-permissions:
-  contents: write   # <-- Autorise l'écriture dans le repo
-
 jobs:
   scrape:
     runs-on: ubuntu-latest
@@ -13,8 +10,6 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -29,11 +24,3 @@ jobs:
 
       - name: Run scraper
         run: python MLTT_scraper.py
-
-      - name: Commit and push results
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add MLTT_2025_26_V5.ics
-          git commit -m "Update MLTT_2025_26_V5.ics" || echo "No changes to commit"
-          git push

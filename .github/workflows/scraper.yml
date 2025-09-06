@@ -28,3 +28,10 @@ jobs:
 
       - name: Run scraper
         run: python MLTT_scraper.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MLTT_2025_26_V5.ics
+          path: MLTT_2025_26_V5.ics
+          if-no-files-found: error

@@ -23,4 +23,4 @@ jobs:
           playwright install
 
       - name: Run scraper
-        run: python MLTT_scraper.py
+        run: python MLTT_scraper.

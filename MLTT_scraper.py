@@ -1,6 +1,6 @@
 # ===========================================
-# MLTT_scraper.py - Version 3.0
-# Objectif : Récupérer les matchs MLTT et
+# MLTT_scraper.py - Version 4.0
+# Objectif : Récupérer les matchs MLTT, 
 # les écrire en clair dans MLTT_2025_26_V5.ics
 # ===========================================
 
@@ -66,6 +66,6 @@ def save_matches_to_ics(matches):
 if __name__ == "__main__":
     matches = fetch_matches()
     print(f"[OK] Nombre de matchs trouvés: {len(matches)}")
-    for m in matches[:5]:  # aperçu 5 matchs
+    for m in matches[:5]:
         print(m)
     save_matches_to_ics(matches)

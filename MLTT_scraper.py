@@ -68,4 +68,4 @@ if __name__ == "__main__":
     print(f"[OK] Nombre de matchs trouvés: {len(matches)}")
     for m in matches[:5]:
         print(m)
-    save_matches_to_ics(matches)
+    save_matches_to_ics(matches

@@ -2,6 +2,9 @@ name: MLTT Scraper
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   scrape:
@@ -22,16 +25,8 @@ jobs:
           pip install playwright
           playwright install
 
-      - name: Clear existing ICS file
-        run: |
-          echo "" > MLTT_2025_26_V5.ics
-
       - name: Run scraper
         run: python MLTT_scraper.py
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: MLTT_2025_26_V5.ics
-          path: MLTT_2025_26_V5.ics
-          if-no-files-found: error
+      - name: Upload ICS artifact
+        uses: actions/upload-artifact@

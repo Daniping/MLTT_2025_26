@@ -4,6 +4,13 @@ on:
   workflow_dispatch:
 
 jobs:
+  write-bonjour
+name: Test MLTT Scraper
+
+on:
+  workflow_dispatch:
+
+jobs:
   write-bonjour:
     runs-on: ubuntu-latest
 

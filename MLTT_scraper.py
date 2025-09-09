@@ -1,64 +1,54 @@
+# MLTT_scraper.py
+import os
 from playwright.sync_api import sync_playwright
 
-# Fichier de sortie (non utilisé pour l’instant)
-OUTPUT_FILE = "MLTT_2025_26_V5.ics"
-
-# Dictionnaire complet des équipes (codes → noms)
-TEAM_MAP = {
+# Mapping des IDs des logos vers les noms d'équipes
+TEAM_MAPPING = {
     "687762138fa2e035f9b328c8": "Princeton Revolution",
     "687762138fa2e035f9b328f1": "New York Slice",
     "687762138fa2e035f9b32901": "Carolina Gold Rush",
-    "687762138fa2e035f9b32902": "Texas Smash",
-    "687762138fa2e035f9b32903": "Florida Crocs",
-    "687762138fa2e035f9b32904": "Los Angeles Beat",
-    "687762138fa2e035f9b32905": "Chicago Wind",
-    "687762138fa2e035f9b32906": "Bay Area Blasters",
-    "687762138fa2e035f9b32907": "Boston Spin",
-    "687762138fa2e035f9b32908": "Philadelphia Rollers",
-    "687762138fa2e035f9b32909": "Atlanta Loop",
-    "687762138fa2e035f9b3290a": "Seattle Bounce",
-    "687762138fa2e035f9b3290b": "Denver Smashers",
-    "687762138fa2e035f9b3290c": "Las Vegas Flick",
-    "687762138fa2e035f9b3290d": "San Diego Paddle",
-    "687762138fa2e035f9b3290e": "Houston Spin Masters"
+    "687762138fa2e035f9b32902": "Florida Crocs",
+    # Ajouter les autres identifiants si nécessaire
 }
 
-def scrape_matches():
-    matches = []
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto("https://mltt.com/league/schedule")  # URL du calendrier MLTT
+URL_SCHEDULE = "https://mltt.com/league/schedule"
 
-        # Sélecteur à adapter si besoin
-        games = page.query_selector_all(".schedule-game")
-        for game in games:
-            try:
-                team1 = game.get_attribute("data-team1")
-                team2 = game.get_attribute("data-team2")
-                date = game.get_attribute("data-date")
-                venue = game.get_attribute("data-venue")
+matches = []
 
-                matches.append({
-                    "team1": team1,
-                    "team2": team2,
-                    "date": date,
-                    "venue": venue
-                })
-            except Exception:
-                continue
+with sync_playwright() as p:
+    browser = p.chromium.launch(headless=True)
+    page = browser.new_page()
+    page.goto(URL_SCHEDULE)
+    page.wait_for_selector("div.schedule-block")  # attends que le calendrier charge
 
-        browser.close()
-    return matches
+    blocks = page.query_selector_all("div.schedule-block")
+    for block in blocks:
+        # Récupération des logos / noms des équipes
+        team_imgs = block.query_selector_all("div.schedule-team-logo img")
+        teams = []
+        for img in team_imgs:
+            src = img.get_attribute("src")
+            base = os.path.basename(src).split(".")[0]
+            base = base.replace("%20", "").split("(")[0].strip()
+            name = TEAM_MAPPING.get(base, base)
+            teams.append(name)
 
-if __name__ == "__main__":
-    matches = scrape_matches()
-    print(f"[OK] Nombre de matchs trouvés: {len(matches)}")
+        if len(teams) == 2:
+            # Récupération de la date / lieu
+            date_elem = block.query_selector("div.schedule-date")
+            venue_elem = block.query_selector("div.schedule-venue")
+            date = date_elem.inner_text().strip() if date_elem else "?"
+            venue = venue_elem.inner_text().strip() if venue_elem else "?"
+            
+            match = {
+                "team1": teams[0],
+                "team2": teams[1],
+                "date": date,
+                "venue": venue
+            }
+            matches.append(match)
+            print(match)
 
-    for match in matches:
-        team1 = TEAM_MAP.get(match["team1"], match["team1"])
-        team2 = TEAM_MAP.get(match["team2"], match["team2"])
-        date = match["date"]
-        venue = match["venue"]
+    browser.close()
 
-        print(f"{team1} vs {team2} - Date: {date} - Lieu: {venue}")
+print(f"[OK] Nombre de matchs trouvés: {len(matches)}")

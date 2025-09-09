@@ -1,11 +1,11 @@
-# ===========================================
-# MLTT_scraper.py - Scraper MLTT minimal
-# Écrit directement les matchs en clair dans MLTT_2025_26_V5.ics
-# ===========================================
-
-from playwright.sync_api import sync_playwright
-
 OUTPUT_FILE = "MLTT_2025_26_V5.ics"
+
+# Étape 0 : vider le fichier dès le départ
+with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+    pass  # crée un fichier vide ou efface le contenu existant
+
+# Ensuite, on lance le scraping
+from playwright.sync_api import sync_playwright
 
 def fetch_matches():
     url = "https://mltt.com/league/schedule"
@@ -25,7 +25,6 @@ def fetch_matches():
             for img in team_imgs:
                 alt = img.get_attribute("alt")
                 src = img.get_attribute("src")
-                # On prend alt si présent, sinon l'identifiant du logo
                 teams.append(alt if alt else src.split("/")[-1].split("_")[0])
 
             team1 = teams[0] if len(teams) > 0 else "?"
@@ -39,7 +38,7 @@ def fetch_matches():
 if __name__ == "__main__":
     matches = fetch_matches()
 
-    # Écriture directe dans le fichier du repo, mode append
+    # Écriture dans le fichier vidé au début
     with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
         for match in matches:
             f.write(f"{match['team1']} vs {match['team2']}\n")

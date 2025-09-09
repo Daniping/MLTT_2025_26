@@ -28,7 +28,7 @@ def scrape_matches():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
-        page.goto("https://mltt.com/schedule")  # URL du calendrier MLTT
+        page.goto("https://mltt.com/league/schedule")  # URL du calendrier MLTT
 
         # Sélecteur à adapter si besoin
         games = page.query_selector_all(".schedule-game")

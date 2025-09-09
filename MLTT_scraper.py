@@ -1,45 +1,44 @@
-# MLTT_scraper.py
 import os
+import json
 from playwright.sync_api import sync_playwright
 
-# Mapping des IDs des logos vers les noms d'équipes
+# Dossier de sortie (pour test, affichage dans le run)
+OUTPUT_FILE = "MLTT_matches_test.txt"
+
 TEAM_MAPPING = {
-    "687762138fa2e035f9b328c8": "Princeton Revolution",
-    "687762138fa2e035f9b328f1": "New York Slice",
-    "687762138fa2e035f9b32901": "Carolina Gold Rush",
-    "687762138fa2e035f9b32902": "Florida Crocs",
-    # Ajouter les autres identifiants si nécessaire
+    # Ici tu peux mettre le mapping Hexa -> nom si nécessaire,
+    # mais pour l'affichage, on prendra directement le code Hexa
 }
-
-URL_SCHEDULE = "https://mltt.com/league/schedule"
-
-matches = []
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
     page = browser.new_page()
-    page.goto(URL_SCHEDULE)
-    page.wait_for_selector("div.schedule-block")  # attends que le calendrier charge
+    page.goto("https://mltt.com/league/schedule")
 
-    blocks = page.query_selector_all("div.schedule-block")
-    for block in blocks:
-        # Récupération des logos / noms des équipes
+    # attend que le calendrier charge
+    page.wait_for_selector("div.schedule-block")
+
+    matches = []
+
+    # récupérer tous les blocs de matchs
+    schedule_blocks = page.query_selector_all("div.schedule-block")
+    for block in schedule_blocks:
+        # récupérer les logos (identifiants Hexa)
         team_imgs = block.query_selector_all("div.schedule-team-logo img")
         teams = []
         for img in team_imgs:
             src = img.get_attribute("src")
             base = os.path.basename(src).split(".")[0]
             base = base.replace("%20", "").split("(")[0].strip()
-            name = TEAM_MAPPING.get(base, base)
-            teams.append(name)
+            teams.append(base)  # ici on garde le code Hexa
+
+        # récupérer la date et le lieu si dispo
+        date_elem = block.query_selector("div.schedule-date")
+        venue_elem = block.query_selector("div.schedule-venue")
+        date = date_elem.inner_text() if date_elem else "?"
+        venue = venue_elem.inner_text() if venue_elem else "?"
 
         if len(teams) == 2:
-            # Récupération de la date / lieu
-            date_elem = block.query_selector("div.schedule-date")
-            venue_elem = block.query_selector("div.schedule-venue")
-            date = date_elem.inner_text().strip() if date_elem else "?"
-            venue = venue_elem.inner_text().strip() if venue_elem else "?"
-            
             match = {
                 "team1": teams[0],
                 "team2": teams[1],
@@ -47,8 +46,17 @@ with sync_playwright() as p:
                 "venue": venue
             }
             matches.append(match)
-            print(match)
 
     browser.close()
 
+# Affichage clair dans le run
 print(f"[OK] Nombre de matchs trouvés: {len(matches)}")
+for m in matches:
+    print(m)
+
+# Sauvegarde dans un fichier test pour vérification
+with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+    for m in matches:
+        f.write(f"{m['team1']} vs {m['team2']} - Date: {m['date']}, Lieu: {m['venue']}\n\n")
+
+print(f"[OK] Données sauvegardées dans {OUTPUT_FILE}")

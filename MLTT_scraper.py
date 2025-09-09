@@ -1,45 +1,95 @@
-# MLTT_teams_scraper.py (adapté pour affichage des Hexa)
+# ===========================================
+# MLTT_scraper.py - Scrape Week 1 Matches
+# Objectif : Récupérer les matchs Week 1 et écrire
+# dans MLTT_2025_26_V5.ics en clair
+# ===========================================
 
 from playwright.sync_api import sync_playwright
+from datetime import datetime
 import os
 
-# Mapping Hexa -> Nom si besoin (pour l'instant on affiche juste les Hexa)
-TEAM_MAPPING = {
-    '687762138fa2e035f9b328c8': 'Princeton Revolution',
-    '687762138fa2e035f9b328f1': 'New York Slice',
-    '687762138fa2e035f9b32901': 'Carolina Gold Rush',
-    '687762138fa2e035f9b32902': 'Florida Crocs',
-    # ... Ajouter les autres équipes si nécessaire
-}
+# -----------------------------
+# Fichier de sortie
+# -----------------------------
+OUTPUT_FILE = "MLTT_2025_26_V5.ics"
 
-URL = "https://mltt.com/league/schedule"
+# -----------------------------
+# Fonction pour récupérer les matchs
+# -----------------------------
+def fetch_week1_matches():
+    url = "https://mltt.com/league/schedule"
+    matches = []
 
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True)
-    page = browser.new_page()
-    page.goto(URL)
-    
-    # On récupère tous les blocs de matchs comme dans le script qui a fonctionné
-    match_blocks = page.query_selector_all("div.schedule-block")
-    print(f"[OK] Nombre de matchs trouvés: {len(match_blocks)}")
-    
-    for block in match_blocks:
-        # Récupération des logos/Hexa
-        team_imgs = block.query_selector_all("div.schedule-team-logo img")
-        teams = []
-        for img in team_imgs:
-            src = img.get_attribute("src")
-            base = os.path.basename(src).split(".")[0]
-            base = base.replace("%20", "").split("(")[0].strip()  # nettoyage
-            teams.append(base)  # on affiche les Hexa
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(url, timeout=60000)
+        page.wait_for_timeout(5000)  # attendre que JS charge tout
 
-        # Récupération date, heure, lieu
-        date_elem = block.query_selector("div.schedule-date")
-        venue_elem = block.query_selector("div.schedule-venue")
-        date_text = date_elem.inner_text() if date_elem else "?"
-        venue_text = venue_elem.inner_text() if venue_elem else "?"
+        # On récupère tous les blocs de matchs futurs
+        match_blocks = page.query_selector_all("div.future-match-single-top-wrap")
 
-        # Affichage dans le run scraper
-        print(f"{teams[0]} vs {teams[1]} - Date: {date_text}, Lieu: {venue_text}")
+        for block in match_blocks:
+            # Filtrage pour Week 1 uniquement
+            week_el = block.query_selector("div.schedule-week")
+            week_text = week_el.inner_text().strip() if week_el else ""
+            if "Week 1" not in week_text:
+                continue
 
-    browser.close()
+            # Équipes
+            team_imgs = block.query_selector_all("div.schedule-team-logo img")
+            teams = []
+            for img in team_imgs:
+                alt = img.get_attribute("alt")
+                src = img.get_attribute("src")
+                # on prend l'alt si existant, sinon le nom codé dans src
+                teams.append(alt if alt else os.path.basename(src).split("_")[0])
+
+            team1 = teams[0] if len(teams) > 0 else "?"
+            team2 = teams[1] if len(teams) > 1 else "?"
+
+            # Date & heure
+            date_el = block.query_selector("h3.future-match-game-title")
+            date_text = date_el.inner_text().strip() if date_el else "?"
+            try:
+                date_obj = datetime.strptime(date_text, "%b %d, %Y %I:%M %p")
+                date_str = date_obj.strftime("%Y-%m-%d")
+                time_str = date_obj.strftime("%H:%M")
+            except Exception:
+                date_str, time_str = date_text, "?"
+
+            # Lieu
+            venue_el = block.query_selector("h3.city-state")
+            venue = venue_el.inner_text().strip() if venue_el else "?"
+
+            matches.append({
+                "team1": team1,
+                "team2": team2,
+                "date": date_str,
+                "time": time_str,
+                "venue": venue
+            })
+
+        browser.close()
+
+    return matches
+
+# -----------------------------
+# Écriture des matchs dans le fichier
+# -----------------------------
+def save_matches(matches):
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:  # "w" pour vider le fichier avant
+        for m in matches:
+            line = f"{m['team1']} vs {m['team2']} - Date: {m['date']}, Heure: {m['time']}, Lieu: {m['venue']}\n\n"
+            f.write(line)
+    print(f"[OK] {len(matches)} matchs écrits dans {OUTPUT_FILE}")
+
+# -----------------------------
+# Main
+# -----------------------------
+if __name__ == "__main__":
+    matches = fetch_week1_matches()
+    print(f"[OK] Nombre de matchs Week 1 trouvés: {len(matches)}")
+    for m in matches:
+        print(f"{m['team1']} vs {m['team2']}")
+    save_matches(matches)

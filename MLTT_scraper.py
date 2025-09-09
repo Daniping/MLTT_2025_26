@@ -1,29 +1,13 @@
 # ===========================================
 # MLTT_scraper.py - Scraper MLTT minimal
-# Écrit directement les matchs dans MLTT_2025_26_V5.ics
-# Convertit les Hexas de 3 équipes en noms
+# Écrit directement les matchs en clair dans MLTT_2025_26_V5.ics
+# Suppression des doublons
 # ===========================================
 
 from playwright.sync_api import sync_playwright
 
 OUTPUT_FILE = "MLTT_2025_26_V5.ics"
 
-# Dictionnaire pour convertir les Hexas ciblés
-TEAM_MAPPING = {
-    "687762138fa2e035f9b328c8": "Princeton Revolution",
-    "687762138fa2e035f9b328f1": "New York Slice",
-    "687762138fa2e035f9b32901": "Carolina Gold Rush"
-}
-
-# -------------------------------
-# Étape 0 : vider le fichier dès le départ
-# -------------------------------
-with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-    pass  # fichier vidé
-
-# -------------------------------
-# Étape 1 : récupération des matchs
-# -------------------------------
 def fetch_matches():
     url = "https://mltt.com/league/schedule"
     matches = []
@@ -42,10 +26,8 @@ def fetch_matches():
             for img in team_imgs:
                 alt = img.get_attribute("alt")
                 src = img.get_attribute("src")
-                base = src.split("/")[-1].split("_")[0]  # identifiant du logo
-                # conversion Hexa -> nom si présent dans le mapping
-                name = TEAM_MAPPING.get(base, alt if alt else base)
-                teams.append(name)
+                # On prend alt si présent, sinon l'identifiant du logo
+                teams.append(alt if alt else src.split("/")[-1].split("_")[0])
 
             team1 = teams[0] if len(teams) > 0 else "?"
             team2 = teams[1] if len(teams) > 1 else "?"
@@ -55,14 +37,15 @@ def fetch_matches():
 
     return matches
 
-# -------------------------------
-# Étape 2 : écriture dans le fichier
-# -------------------------------
 if __name__ == "__main__":
     matches = fetch_matches()
 
-    with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
-        for match in matches:
-            f.write(f"{match['team1']} vs {match['team2']}\n")
+    # Supprimer les doublons
+    unique_matches = list({(m['team1'], m['team2']) for m in matches})
 
-    print(f"[OK] {len(matches)} matchs ajoutés dans {OUTPUT_FILE}")
+    # Vider le fichier avant d'écrire
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        for match in unique_matches:
+            f.write(f"{match[0]} vs {match[1]}\n")
+
+    print(f"[OK] {len(unique_matches)} matchs uniques ajoutés dans {OUTPUT_FILE}")

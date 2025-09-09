@@ -1,30 +1,27 @@
 # ===========================================
-# MLTT_scraper.py - Scraper MLTT avec noms d'équipes
-# Supprime doublons et écrit directement dans MLTT_2025_26_V5.ics
+# MLTT_scraper.py - Scraper finalisé
+# - Vide le fichier au tout début
+# - Convertit tous les hexas en noms d'équipes
+# - Supprime les doublons
+# - Écrit dans MLTT_2025_26_V5.ics
 # ===========================================
 
 from playwright.sync_api import sync_playwright
 
 OUTPUT_FILE = "MLTT_2025_26_V5.ics"
 
-# Dictionnaire complet des équipes MLTT
+# Dictionnaire complet des 10 équipes MLTT
 TEAM_MAPPING = {
     "687762138fa2e035f9b328c8": "Princeton Revolution",
     "687762138fa2e035f9b328f1": "New York Slice",
     "687762138fa2e035f9b32901": "Carolina Gold Rush",
     "687762138fa2e035f9b32902": "Florida Crocs",
-    "687762138fa2e035f9b32905": "Houston Cosmos",
-    "687762138fa2e035f9b32907": "Chicago Wind",
-    "687762138fa2e035f9b32909": "Seattle Spinners",
-    "687762138fa2e035f9b3290b": "Los Angeles Blaze",
-    "687762138fa2e035f9b3290d": "Bay Area Breakers",
-    "687762138fa2e035f9b3290f": "Boston Riptide",
-    "687762138fa2e035f9b32911": "Philadelphia Power",
-    "687762138fa2e035f9b32913": "Texas Cyclones",
-    "687762138fa2e035f9b32915": "Denver Peaks",
-    "687762138fa2e035f9b32917": "Las Vegas Lightning",
-    "687762138fa2e035f9b32919": "San Diego Waves",
-    "687762138fa2e035f9b3291b": "Orlando Orbit",
+    "687762138fa2e035f9b32905": "Atlanta Blazers",
+    "687762138fa2e035f9b32907": "Portland Paddlers",
+    "687762138fa2e035f9b32909": "Texas Smash",
+    "687762138fa2e035f9b3290b": "Los Angeles Spinners",
+    "687762138fa2e035f9b3290d": "Bay Area Blasters",
+    "687762138fa2e035f9b3290f": "Chicago Wind",
 }
 
 def fetch_matches():
@@ -35,47 +32,43 @@ def fetch_matches():
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto(url, timeout=60000)
-        page.wait_for_timeout(5000)  # attendre que JS charge tout
+        page.wait_for_timeout(5000)
 
         match_blocks = page.query_selector_all("div.future-match-single-top-wrap")
-
         for block in match_blocks:
             team_imgs = block.query_selector_all("div.schedule-team-logo img")
             teams = []
             for img in team_imgs:
                 alt = img.get_attribute("alt")
-                src = img.get_attribute("src")
+                src = img.get_attribute("src") or ""
                 ident = src.split("/")[-1].split("_")[0] if src else "?"
-                # Conversion via dico
                 name = TEAM_MAPPING.get(ident, alt if alt else ident)
                 teams.append(name)
 
-            team1 = teams[0] if len(teams) > 0 else "?"
-            team2 = teams[1] if len(teams) > 1 else "?"
-            matches.append({"team1": team1, "team2": team2})
+            if len(teams) >= 2:
+                matches.append((teams[0], teams[1]))
 
         browser.close()
-
     return matches
 
 if __name__ == "__main__":
-    # On vide le fichier AVANT d’écrire
+    # 1. vider le fichier dès le début
     open(OUTPUT_FILE, "w", encoding="utf-8").close()
 
+    # 2. récupérer tous les matchs
     matches = fetch_matches()
 
-    # Suppression des doublons
-    unique_matches = []
-    seen = set()
-    for match in matches:
-        key = (match["team1"], match["team2"])
+    # 3. supprimer les doublons tout en conservant l'ordre
+    seen, unique_matches = set(), []
+    for t1, t2 in matches:
+        key = (t1, t2)
         if key not in seen:
             seen.add(key)
-            unique_matches.append(match)
+            unique_matches.append(key)
 
-    # Écriture dans le fichier du repo
+    # 4. écrire les matchs uniques
     with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
-        for match in unique_matches:
-            f.write(f"{match['team1']} vs {match['team2']}\n")
+        for t1, t2 in unique_matches:
+            f.write(f"{t1} vs {t2}\n")
 
-    print(f"[OK] {len(unique_matches)} matchs uniques ajoutés dans {OUTPUT_FILE}")
+    print(f"[OK] {len(unique_matches)} matchs uniques écrits dans {OUTPUT_FILE}")

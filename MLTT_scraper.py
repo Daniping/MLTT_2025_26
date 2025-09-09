@@ -37,4 +37,4 @@ with sync_playwright() as p:
         matches.append(match_info)
         print(match_info)
 
-    browser.close()
+    browser.close() 

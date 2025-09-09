@@ -1,61 +1,64 @@
-# MLTT_team_hexas_v2.py
-# Extraction plus robuste des identifiants hexadécimaux (logos / liens / styles)
+# ===========================================
+# MLTT_extract_hexas.py
+# - Récupère tous les Hexas des équipes visibles sur la page
+# - Conserve le sélecteur de chaque équipe
+# - Écrit dans hexas_teams.csv pour analyse
+# ===========================================
+
 from playwright.sync_api import sync_playwright
-import re
+import csv
 
 URL = "https://mltt.com/league/schedule"
-OUTPUT_FILE = "team_hexas.txt"
-HEX_PATTERN = re.compile(r"([0-9a-f]{24})", re.IGNORECASE)
+OUTPUT_CSV = "hexas_teams.csv"
 
-def fetch_team_hexas():
-    hexes = set()
+# Équipes connues pour comparaison
+KNOWN_TEAMS = {
+    "687762138fa2e035f9b328c8": "Princeton Revolution",
+    "687762138fa2e035f9b328f1": "New York Slice",
+    "687762138fa2e035f9b32901": "Carolina Gold Rush",
+    "687762138fa2e035f9b32902": "Florida Crocs",
+    "687762138fa2e035f9b32905": "Atlanta Blazers",
+    "687762138fa2e035f9b32907": "Portland Paddlers",
+    "687762138fa2e035f9b32909": "Texas Smash",
+    "687762138fa2e035f9b3290b": "Los Angeles Spinners",
+    "687762138fa2e035f9b3290d": "Bay Area Blasters",
+    "687762138fa2e035f9b3290f": "Chicago Wind",
+}
 
+def extract_hexas():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
+        browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto(URL, timeout=60000)
-        # petit délai initial
-        page.wait_for_timeout(2000)
+        page.wait_for_timeout(5000)
 
-        # scroller pour forcer le lazy-load
-        for _ in range(10):
-            page.evaluate("window.scrollBy(0, document.body.scrollHeight)")
-            page.wait_for_timeout(400)
+        # Récupération de tous les logos d'équipes sur la page
+        team_imgs = page.query_selector_all("div.schedule-team-logo img")
+        hexas_list = []
 
-        # récupérer un ensemble d'emplacements où un ID peut apparaître
-        payload = page.evaluate("""() => {
-            const imgs = Array.from(document.querySelectorAll('img')).map(i => (i.src || i.getAttribute('data-src') || ''));
-            const attrs = [];
-            // extraire attributes susceptibles de contenir des URLs (style, data-*, srcset...)
-            Array.from(document.querySelectorAll('*')).forEach(el => {
-                for (let a of el.attributes) {
-                    if (a && a.value && typeof a.value === 'string') attrs.push(a.value);
-                }
-                if (el.srcset) attrs.push(el.srcset);
-                if (el.style && el.style.backgroundImage) attrs.push(el.style.backgroundImage);
-            });
-            const hrefs = Array.from(document.querySelectorAll('a[href]')).map(a => a.getAttribute('href') || '');
-            return {imgs, attrs, hrefs, imgs_count: document.querySelectorAll('img').length};
-        }""")
-
-        # Chercher les hexas dans tous les champs récupérés
-        for s in payload.get("imgs", []) + payload.get("attrs", []) + payload.get("hrefs", []):
-            if not s:
-                continue
-            for m in HEX_PATTERN.finditer(s):
-                hexes.add(m.group(1))
+        for img in team_imgs:
+            alt = img.get_attribute("alt")
+            src = img.get_attribute("src") or ""
+            ident = src.split("/")[-1].split("_")[0] if src else "?"
+            known_name = KNOWN_TEAMS.get(ident, "")
+            hexas_list.append({
+                "hexa": ident,
+                "alt_text": alt,
+                "known_name": known_name,
+                "selector": "div.schedule-team-logo img"
+            })
 
         browser.close()
-
-    return sorted(hexes)
+        return hexas_list
 
 if __name__ == "__main__":
-    hexas = fetch_team_hexas()
-    # écriture
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        for h in hexas:
-            f.write(h + "\n")
+    hexas = extract_hexas()
+    # Sauvegarde dans CSV
+    with open(OUTPUT_CSV, "w", newline="", encoding="utf-8") as csvfile:
+        fieldnames = ["hexa", "alt_text", "known_name", "selector"]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in hexas:
+            writer.writerow(row)
 
-    print(f"[OK] {len(hexas)} identifiants extraits et sauvés dans {OUTPUT_FILE}")
-    for h in hexas:
-        print(h)
+    print(f"[OK] {len(hexas)} entrées écrites dans {OUTPUT_CSV}")

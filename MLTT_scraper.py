@@ -11,7 +11,7 @@ from playwright.sync_api import sync_playwright
 OUTPUT_FILE = "MLTT_2025_26_V5.ics"
 
 # Dictionnaire complet des 10 équipes MLTT
-TEAM_MAP = {
+TEAM_MAPPING = {
     "687762138fa2e035f9b328c8": "Princeton Revolution",
     "687762138fa2e035f9b328f1": "New York Slice",
     "687762138fa2e035f9b32901": "Carolina Gold Rush",

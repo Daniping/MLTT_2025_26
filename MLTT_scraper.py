@@ -1,81 +1,64 @@
-# ===========================================
-# MLTT_scraper.py - Minimalist final version
-# - Vide le fichier dès le début
-# - Récupère les noms d'équipes depuis /teams
-# - Récupère les matchs depuis /league/schedule
-# - Supprime les doublons
-# - Écrit dans MLTT_2025_26_V5.ics
-# ===========================================
-
 from playwright.sync_api import sync_playwright
 
 OUTPUT_FILE = "MLTT_2025_26_V5.ics"
 
-def fetch_teams():
-    url = "https://mltt.com/teams"
-    teams = []
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(url, timeout=60000)
-        page.wait_for_timeout(5000)
-        
-        team_elements = page.query_selector_all("div.team-card h3, div.team-card .team-name")
-        for el in team_elements:
-            text = el.inner_text().strip()
-            if text:
-                teams.append(text)
-        
-        browser.close()
-    return list(dict.fromkeys(teams))  # supprimer doublons tout en conservant l'ordre
-
-def fetch_matches():
-    url = "https://mltt.com/league/schedule"
+def fetch_schedule_matches(page):
     matches = []
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(url, timeout=60000)
-        page.wait_for_timeout(5000)
-        
-        match_blocks = page.query_selector_all("div.future-match-single-top-wrap")
-        for block in match_blocks:
-            imgs = block.query_selector_all("div.schedule-team-logo img")
-            teams = []
-            for img in imgs:
-                alt = img.get_attribute("alt")
-                src = img.get_attribute("src") or ""
-                name = alt if alt else src.split("/")[-1].split("_")[0]
-                teams.append(name)
-            if len(teams) >= 2:
-                matches.append((teams[0], teams[1]))
-        
-        browser.close()
+    match_blocks = page.query_selector_all("div.future-match-single-top-wrap")
+    for block in match_blocks:
+        team_names = block.query_selector_all("h3.future-match-game-title")
+        teams = [t.inner_text().strip() for t in team_names if t.inner_text().strip()]
+        if len(teams) >= 2:
+            matches.append((teams[0], teams[1]))
     return matches
 
+def fetch_team_names(page):
+    teams = set()
+    team_blocks = page.query_selector_all("div.team-block")  # ajuster selon structure réelle
+    for block in team_blocks:
+        name_el = block.query_selector("h3.team-name")  # ou "div.team-name" selon site
+        if name_el:
+            name = name_el.inner_text().strip()
+            if name:
+                teams.add(name)
+    return teams
+
 if __name__ == "__main__":
-    # 1. Vider le fichier dès le départ
-    open(OUTPUT_FILE, "w", encoding="utf-8").close()
-    
-    # 2. Récupérer toutes les équipes
-    teams = fetch_teams()
-    
-    # 3. Récupérer tous les matchs
-    matches = fetch_matches()
-    
-    # 4. Supprimer doublons
-    seen = set()
-    unique_matches = []
+    open(OUTPUT_FILE, "w", encoding="utf-8").close()  # vider fichier
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+
+        # 1. récupérer tous les matchs
+        page.goto("https://mltt.com/league/schedule", timeout=60000)
+        page.wait_for_timeout(5000)
+        matches = fetch_schedule_matches(page)
+
+        # 2. récupérer toutes les équipes connues depuis /teams
+        page.goto("https://mltt.com/teams", timeout=60000)
+        page.wait_for_timeout(5000)
+        teams_from_page = fetch_team_names(page)
+
+        browser.close()
+
+    # 3. compléter les équipes manquantes dans les matchs
+    all_matches = []
     for t1, t2 in matches:
+        all_matches.append((t1, t2))
+        # Optionnel: vérifier si t1 ou t2 ne sont pas dans teams_from_page et ajuster
+
+    # 4. supprimer doublons
+    seen, unique_matches = set(), []
+    for t1, t2 in all_matches:
         key = (t1, t2)
         if key not in seen:
             seen.add(key)
             unique_matches.append(key)
-    
-    # 5. Écrire dans le fichier
+
+    # 5. écrire les matchs uniques en clair
     with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
-        f.write("\n".join(teams) + "\n\n")
         for t1, t2 in unique_matches:
             f.write(f"{t1} vs {t2}\n")
-    
-    print(f"[OK] {len(teams)} équipes et {len(unique_matches)} matchs écrits dans {OUTPUT_FILE}")
+
+    print(f"[OK] {len(unique_matches)} matchs uniques écrits dans {OUTPUT_FILE}")

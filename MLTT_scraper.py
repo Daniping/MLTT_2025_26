@@ -1,71 +1,76 @@
-# MLTT_scraper.py
-import asyncio
-from playwright.async_api import async_playwright
-import re
+# ===========================================
+# MLTT_scraper.py - Scraper équipes + matchs
+# - Vide le fichier au début
+# - Extrait les 10 équipes officielles
+# - Extrait tous les matchs impliquant ces équipes
+# - Supprime doublons
+# - Écrit dans MLTT_2025_26_V5.ics
+# ===========================================
 
-ICS_FILE = "MLTT_2025_26_V5.ics"
-TEAMS_URL = "https://mltt.com/teams"
+from playwright.sync_api import sync_playwright
 
+OUTPUT_FILE = "MLTT_2025_26_V5.ics"
 
-async def scrape_teams():
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        await page.goto(TEAMS_URL, timeout=60000)
+def fetch_teams():
+    url = "https://mltt.com/teams"
+    teams = set()
 
-        # attendre que la page charge
-        await page.wait_for_selector("body", timeout=20000)
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(url, timeout=60000)
+        page.wait_for_timeout(5000)
 
-        # récupérer tous les textes visibles
-        raw_texts = await page.eval_on_selector_all(
-            "h1, h2, h3, div, span",
-            "els => els.map(e => e.innerText.trim()).filter(t => t)"
-        )
-        await browser.close()
+        team_elements = page.query_selector_all("div.team-card-name")
+        for el in team_elements:
+            name = el.inner_text().strip()
+            if name:
+                teams.add(name)
 
-        # filtrer : on garde uniquement les noms d’équipes (heuristique stricte)
-        candidates = []
-        for t in raw_texts:
-            if len(t) < 30 and re.match(r"^[A-Za-z ]+$", t):  # uniquement lettres et espaces
-                if " " in t:  # doit contenir au moins deux mots
-                    candidates.append(t.strip())
+        browser.close()
+    return list(teams)
 
-        # dédoublonner sans tenir compte de la casse
-        unique = []
-        seen = set()
-        for t in candidates:
-            key = t.lower()
-            if key not in seen:
-                seen.add(key)
-                unique.append(t)
+def fetch_matches(official_teams):
+    url = "https://mltt.com/league/schedule"
+    matches = []
 
-        return unique
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(url, timeout=60000)
+        page.wait_for_timeout(5000)
 
+        match_blocks = page.query_selector_all("div.future-match-single-top-wrap")
+        for block in match_blocks:
+            team_imgs = block.query_selector_all("div.schedule-team-logo img")
+            teams_in_match = []
+            for img in team_imgs:
+                alt = img.get_attribute("alt") or ""
+                if alt in official_teams:
+                    teams_in_match.append(alt)
+            if len(teams_in_match) == 2:
+                matches.append(tuple(teams_in_match))
 
-def write_ics(teams):
-    with open(ICS_FILE, "w", encoding="utf-8") as f:
-        f.write("BEGIN:VCALENDAR\n")
-        f.write("VERSION:2.0\n")
-        f.write("PRODID:-//MLTT Scraper//EN\n")
-
-        for idx, team in enumerate(teams, start=1):
-            f.write("BEGIN:VEVENT\n")
-            f.write(f"UID:{idx}@mltt.com\n")
-            f.write(f"SUMMARY:{team}\n")
-            f.write("END:VEVENT\n")
-
-        f.write("END:VCALENDAR\n")
-
-
-async def main():
-    teams = await scrape_teams()
-    print("[OK] Équipes détectées :")
-    for t in teams:
-        print("-", t)
-
-    write_ics(teams)
-    print(f"[OK] Fichier {ICS_FILE} mis à jour avec {len(teams)} équipes.")
-
+        browser.close()
+    return matches
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # 1. Vider le fichier dès le début
+    open(OUTPUT_FILE, "w", encoding="utf-8").close()
+
+    # 2. Récupérer les équipes officielles
+    official_teams = fetch_teams()
+
+    # 3. Récupérer les matchs
+    matches = fetch_matches(official_teams)
+
+    # 4. Supprimer doublons
+    seen = set()
+    unique_matches = []
+    for t1, t2 in matches:
+        key = (t1, t2)
+        if key not in seen:
+            seen.add(key)
+            unique_matches.append(key)
+
+    # 5. Écrire dans

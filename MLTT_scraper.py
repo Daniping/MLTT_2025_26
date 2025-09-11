@@ -12,16 +12,20 @@ async def scrape_teams():
         page = await browser.new_page()
         await page.goto(TEAMS_URL, timeout=60000)
 
-        # On attend que les logos apparaissent (sélecteur robuste)
-        await page.wait_for_selector("img[alt]", timeout=20000)
+        # On attend que les noms apparaissent (souvent dans h3 ou h2)
+        await page.wait_for_selector("h2, h3", timeout=20000)
 
-        # On récupère les noms d'équipes
-        teams = await page.eval_on_selector_all(
-            "img[alt]", "elements => elements.map(e => e.alt.trim()).filter(t => t)"
+        # On récupère tous les textes visibles
+        raw_texts = await page.eval_on_selector_all(
+            "h2, h3, div, span",
+            "elements => elements.map(e => e.innerText.trim()).filter(t => t)"
         )
 
         await browser.close()
-        return sorted(set(teams))  # unique + tri
+
+        # On filtre pour ne garder que les vrais noms d'équipes
+        teams = [t for t in raw_texts if " " in t and len(t) < 40]  # heuristique simple
+        return sorted(set(teams))
 
 
 def write_ics(teams):

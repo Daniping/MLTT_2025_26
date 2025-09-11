@@ -1,51 +1,57 @@
 # ===========================================
-# MLTT_scraper.py - Extraction et composition des matchs
-# - Vide le fichier au tout début
-# - Récupère tous les noms des équipes depuis le site
-# - Compose tous les matchs uniques possibles
+# MLTT_scraper.py - Extraction noms d'équipes
+# - Vide le fichier au début
+# - Récupère tous les noms des équipes depuis les logos
+# - Supprime les doublons
 # - Écrit dans MLTT_2025_26_V5.ics
 # ===========================================
 
 from playwright.sync_api import sync_playwright
-from itertools import combinations
 
 OUTPUT_FILE = "MLTT_2025_26_V5.ics"
 
-def fetch_team_names():
+def fetch_matches():
     url = "https://mltt.com/league/schedule"
-    teams = []
+    matches = []
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto(url, timeout=60000)
-        page.wait_for_timeout(5000)
+        page.wait_for_timeout(5000)  # attendre que JS charge tout
 
-        logo_imgs = page.query_selector_all("div.schedule-team-logo img")
-        for img in logo_imgs:
-            alt = img.get_attribute("alt")
-            src = img.get_attribute("src") or ""
-            ident = src.split("/")[-1].split("_")[0] if src else "?"
-            name = alt if alt else ident
-            teams.append(name)
+        match_blocks = page.query_selector_all("div.future-match-single-top-wrap")
+        for block in match_blocks:
+            team_imgs = block.query_selector_all("div.schedule-team-logo img")
+            teams = []
+            for img in team_imgs:
+                name = img.get_attribute("alt") or "?"
+                teams.append(name)
+
+            if len(teams) >= 2:
+                matches.append((teams[0], teams[1]))
 
         browser.close()
-
-    return list(dict.fromkeys(teams))  # supprimer doublons
+    return matches
 
 if __name__ == "__main__":
-    # 1. vider le fichier dès le début
+    # Vider le fichier dès le début
     open(OUTPUT_FILE, "w", encoding="utf-8").close()
 
-    # 2. récupérer les noms uniques
-    teams = fetch_team_names()
+    # Récupérer tous les matchs
+    matches = fetch_matches()
 
-    # 3. composer tous les matchs possibles (chaque paire une seule fois)
-    all_matches = list(combinations(teams, 2))
+    # Supprimer les doublons tout en conservant l'ordre
+    seen, unique_matches = set(), []
+    for t1, t2 in matches:
+        key = (t1, t2)
+        if key not in seen:
+            seen.add(key)
+            unique_matches.append(key)
 
-    # 4. écrire les matchs dans le fichier
+    # Écrire les matchs uniques dans le fichier
     with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
-        for t1, t2 in all_matches:
+        for t1, t2 in unique_matches:
             f.write(f"{t1} vs {t2}\n")
 
-    print(f"[OK] {len(all_matches)} matchs composés et écrits dans {OUTPUT_FILE}")
+    print(f"[OK] {len(unique_matches)} matchs uniques écrits dans {OUTPUT_FILE}")

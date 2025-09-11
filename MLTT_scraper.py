@@ -1,37 +1,37 @@
-# ===========================================
-# MLTT_team_names.py - Extraire les noms des équipes
-# ===========================================
-
+# scraper_hexas.py
 from playwright.sync_api import sync_playwright
+import re
 
-URL = "https://mltt.com/league/schedule"  # ou la page Teams si différente
+OUTPUT_FILE = "team_hexas.txt"
+TEAMS_URL = "https://mltt.com/league/teams"
 
-# Sélecteurs possibles pour le texte des équipes
-TEAM_SELECTORS = [
-    "h3",
-    "h2",
-    "div.team-name",
-    "span.team-name",
-    "div.schedule-team-logo img",  # fallback pour alt
-]
+def main():
+    # Écrase le fichier au début
+    open(OUTPUT_FILE, "w").close()
 
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True)
-    page = browser.new_page()
-    page.goto(URL, timeout=60000)
-    page.wait_for_timeout(5000)  # attendre le JS
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(TEAMS_URL, wait_until="networkidle")
 
-    found_names = set()
+        # Récupère tous les <img> présents sur la page
+        imgs = page.query_selector_all("img")
 
-    for selector in TEAM_SELECTORS:
-        elements = page.query_selector_all(selector)
-        for el in elements:
-            text = el.inner_text() if hasattr(el, "inner_text") else el.get_attribute("alt")
-            if text:
-                found_names.add(text.strip())
+        hexas = set()
+        for img in imgs:
+            src = img.get_attribute("src") or ""
+            match = re.search(r"/([0-9a-f]{24})/", src)
+            if match:
+                hexas.add(match.group(1))
 
-    browser.close()
+        browser.close()
 
-print("[OK] Équipes détectées :")
-for name in sorted(found_names):
-    print(name)
+    # Écriture finale triée
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        for h in sorted(hexas):
+            f.write(h + "\n")
+
+    print(f"[OK] {len(hexas)} identifiants uniques extraits → {OUTPUT_FILE}")
+
+if __name__ == "__main__":
+    main()

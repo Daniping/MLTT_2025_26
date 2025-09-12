@@ -1,64 +1,78 @@
-from playwright.sync_api import sync_playwright
+import asyncio
+import uuid
+from datetime import datetime
+from playwright.async_api import async_playwright
 
-OUTPUT_FILE = "MLTT_2025_26_V5.ics"
+TEAMS_URL = "https://mltt.com/teams"
+SCHEDULE_URL = "https://mltt.com/league/schedule"
+ICS_FILE = "MLTT_2025_26_V5.ics"
 
-def fetch_schedule_matches(page):
-    matches = []
-    match_blocks = page.query_selector_all("div.future-match-single-top-wrap")
-    for block in match_blocks:
-        team_names = block.query_selector_all("h3.future-match-game-title")
-        teams = [t.inner_text().strip() for t in team_names if t.inner_text().strip()]
-        if len(teams) >= 2:
-            matches.append((teams[0], teams[1]))
-    return matches
+async def scrape():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
 
-def fetch_team_names(page):
-    teams = set()
-    team_blocks = page.query_selector_all("div.team-block")  # ajuster selon structure réelle
-    for block in team_blocks:
-        name_el = block.query_selector("h3.team-name")  # ou "div.team-name" selon site
-        if name_el:
-            name = name_el.inner_text().strip()
-            if name:
-                teams.add(name)
-    return teams
+        # --- 1. Récupérer les équipes (logo -> nom)
+        await page.goto(TEAMS_URL, timeout=60000)
+        await page.wait_for_selector("img")
+        logos = await page.query_selector_all("img")
+
+        logo_to_name = {}
+        for img in logos:
+            src = await img.get_attribute("src")
+            alt = await img.get_attribute("alt")
+            if src and alt:
+                if "PRIMARY" in src or "LOCKUP" in src:  # logos d'équipes
+                    key = src.split("/")[-1].split("_")[0]  # ex: 687762138fa2e035f9b328f1
+                    logo_to_name[key] = alt.strip()
+
+        print("Équipes trouvées :", logo_to_name)
+
+        # --- 2. Récupérer les matchs
+        await page.goto(SCHEDULE_URL, timeout=60000)
+        await page.wait_for_selector(".future-match-single-top-wrap")
+
+        matches = []
+        blocks = await page.query_selector_all(".future-match-single-top-wrap")
+        for block in blocks:
+            imgs = await block.query_selector_all("img.future-match-single-clab-logo")
+            if len(imgs) == 2:
+                team_keys = []
+                for img in imgs:
+                    src = await img.get_attribute("src")
+                    if src:
+                        team_keys.append(src.split("/")[-1].split("_")[0])
+                if len(team_keys) == 2:
+                    # Date et heure
+                    date_el = await block.query_selector("h3.future-match-game-title")
+                    date_txt = await date_el.inner_text() if date_el else None
+                    matches.append((team_keys[0], team_keys[1], date_txt))
+
+        await browser.close()
+
+        # --- 3. Écrire ICS
+        with open(ICS_FILE, "w", encoding="utf-8") as f:
+            f.write("BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//MLTT//Schedule 2025-26//EN\n")
+            for team1, team2, date_txt in matches:
+                name1 = logo_to_name.get(team1, team1)
+                name2 = logo_to_name.get(team2, team2)
+                summary = f"{name1} vs {name2}"
+
+                # UID unique
+                uid = f"{uuid.uuid4()}@mltt.com"
+
+                # Date ICS si dispo
+                dtstamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+                dtstart = "20250901T000000Z"  # placeholder tant qu’on ne parse pas les vraies dates
+
+                f.write("BEGIN:VEVENT\n")
+                f.write(f"UID:{uid}\n")
+                f.write(f"DTSTAMP:{dtstamp}\n")
+                f.write(f"DTSTART:{dtstart}\n")
+                f.write(f"SUMMARY:{summary}\n")
+                f.write("END:VEVENT\n")
+
+            f.write("END:VCALENDAR\n")
 
 if __name__ == "__main__":
-    open(OUTPUT_FILE, "w", encoding="utf-8").close()  # vider fichier
-
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-
-        # 1. récupérer tous les matchs
-        page.goto("https://mltt.com/league/schedule", timeout=60000)
-        page.wait_for_timeout(5000)
-        matches = fetch_schedule_matches(page)
-
-        # 2. récupérer toutes les équipes connues depuis /teams
-        page.goto("https://mltt.com/teams", timeout=60000)
-        page.wait_for_timeout(5000)
-        teams_from_page = fetch_team_names(page)
-
-        browser.close()
-
-    # 3. compléter les équipes manquantes dans les matchs
-    all_matches = []
-    for t1, t2 in matches:
-        all_matches.append((t1, t2))
-        # Optionnel: vérifier si t1 ou t2 ne sont pas dans teams_from_page et ajuster
-
-    # 4. supprimer doublons
-    seen, unique_matches = set(), []
-    for t1, t2 in all_matches:
-        key = (t1, t2)
-        if key not in seen:
-            seen.add(key)
-            unique_matches.append(key)
-
-    # 5. écrire les matchs uniques en clair
-    with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
-        for t1, t2 in unique_matches:
-            f.write(f"{t1} vs {t2}\n")
-
-    print(f"[OK] {len(unique_matches)} matchs uniques écrits dans {OUTPUT_FILE}")
+    asyncio.run(scrape())

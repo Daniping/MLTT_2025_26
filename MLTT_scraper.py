@@ -1,100 +1,64 @@
-# ===========================================
-# MLTT_scraper.py - Scraper MLTT finalisé
-# BLOC IMPÉRATIF (à ne jamais modifier une fois validé)
-# - Installe les dépendances si nécessaire
-# - Vide le fichier du repo
-# - Initialise des fonctions critiques
-# ===========================================
-
-import os
-import sys
-import subprocess
+import asyncio
+import re
+import requests
+from bs4 import BeautifulSoup
+from playwright.async_api import async_playwright
 
 OUTPUT_FILE = "MLTT_2025_26_V5.ics"
 
-def ensure_requirements():
-    """Installe automatiquement les dépendances manquantes"""
-    try:
-        import requests
-        import bs4
-        import playwright
-    except ImportError:
-        print("[SETUP] Installation des dépendances manquantes...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "requests", "beautifulsoup4", "playwright"])
-        subprocess.check_call([sys.executable, "-m", "playwright", "install"])
+async def main():
+    # 1) Scraper les équipes
+    teams_url = "https://mltt.com/teams"
+    r = requests.get(teams_url)
+    soup = BeautifulSoup(r.text, "html.parser")
 
-def clear_output_file():
-    """Vide le fichier de sortie"""
-    open(OUTPUT_FILE, "w", encoding="utf-8").close()
-    print(f"[SETUP] {OUTPUT_FILE} vidé.")
+    team_mapping = {}
+    for img in soup.find_all("img", alt=True, src=True):
+        alt = img["alt"].strip()
+        src = img["src"]
+        m = re.search(r"([0-9a-f]{24})", src)
+        if alt and m:
+            team_mapping[m.group(1)] = alt
 
-# Exécution impérative au démarrage
-ensure_requirements()
-clear_output_file()
+    # 2) Scraper les matchs
+    schedule_url = "https://mltt.com/league/schedule"
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        page = await browser.new_page()
+        await page.goto(schedule_url)
+        await page.wait_for_selector("div.schedule-card")  # chaque match
 
-# ===========================================
-# FIN DU BLOC IMPÉRATIF
-# Tout le reste peut être modifié librement
-# ===========================================
+        matches = await page.query_selector_all("div.schedule-card")
+        lines = []
 
-import requests
-from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright
+        for match in matches:
+            date = await match.query_selector_eval(".date", "el => el.textContent") if await match.query_selector(".date") else "?"
+            time = await match.query_selector_eval(".time", "el => el.textContent") if await match.query_selector(".time") else "?"
+            location = await match.query_selector_eval(".location", "el => el.textContent") if await match.query_selector(".location") else "?"
 
-def fetch_teams():
-    """Scrape la liste officielle des équipes depuis https://mltt.com/teams"""
-    url = "https://mltt.com/teams"
-    response = requests.get(url, timeout=15)
-    response.raise_for_status()
-    soup = BeautifulSoup(response.text, "html.parser")
-    teams = [h2.get_text(strip=True) for h2 in soup.find_all("h2") if h2.get_text(strip=True)]
-    print(f"[OK] {len(teams)} équipes trouvées via scraping.")
-    return teams
-
-def fetch_matches():
-    """Scrape la page des matchs et récupère les équipes via ALT des logos"""
-    url = "https://mltt.com/league/schedule"
-    matches = []
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(url, timeout=60000)
-        page.wait_for_timeout(5000)
-        match_blocks = page.query_selector_all("div.future-match-single-top-wrap")
-        for block in match_blocks:
-            team_imgs = block.query_selector_all("div.schedule-team-logo img")
+            imgs = await match.query_selector_all("img")
             teams = []
-            for img in team_imgs:
-                alt = img.get_attribute("alt") or "?"
-                teams.append(alt)
-            if len(teams) >= 2:
-                matches.append((teams[0], teams[1]))
-        browser.close()
-    return matches
+            for img in imgs:
+                src = await img.get_attribute("src")
+                if src:
+                    m = re.search(r"([0-9a-f]{24})", src)
+                    if m:
+                        teams.append(team_mapping.get(m.group(1), "?"))
+
+            if len(teams) == 2:
+                line = f"{date} {time} – {teams[0]} vs {teams[1]} – {location}"
+                if "Sep" in date:
+                    lines.append(line)
+
+        await browser.close()
+
+    # 3) Sauvegarde dans le repo
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        f.write("Matchs MLTT – Septembre 2025\n\n")
+        for line in lines:
+            f.write(line + "\n")
+
+    print(f"{len(lines)} matchs écrits dans {OUTPUT_FILE}")
 
 if __name__ == "__main__":
-    # 1. récupérer la liste des équipes
-    all_teams = fetch_teams()
-
-    # 2. récupérer tous les matchs
-    matches = fetch_matches()
-
-    # 3. supprimer les doublons tout en conservant l'ordre
-    seen, unique_matches = set(), []
-    for t1, t2 in matches:
-        key = (t1, t2)
-        if key not in seen:
-            seen.add(key)
-            unique_matches.append(key)
-
-    # 4. écrire les équipes + matchs dans le fichier
-    with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
-        f.write("Équipes officielles MLTT :\n")
-        for team in all_teams:
-            f.write(f"- {team}\n")
-        f.write("\nMatchs à venir :\n")
-        for t1, t2 in unique_matches:
-            f.write(f"{t1} vs {t2}\n")
-
-    print(f"[OK] {len(unique_matches)} matchs uniques écrits dans {OUTPUT_FILE}")
+    asyncio.run(main())

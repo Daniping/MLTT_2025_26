@@ -1,16 +1,46 @@
 # ===========================================
-# MLTT_scraper.py - Scraper simplifié
-# - Vide le fichier au tout début
-# - Récupère dynamiquement les noms d'équipes depuis /teams
-# - Scrape les matchs à venir depuis /league/schedule
-# - Supprime les doublons
-# - Écrit dans MLTT_2025_26_V5.ics
+# MLTT_scraper.py - Scraper MLTT finalisé
+# BLOC IMPÉRATIF (à ne jamais modifier une fois validé)
+# - Installe les dépendances si nécessaire
+# - Vide le fichier du repo
+# - Initialise des fonctions critiques
 # ===========================================
+
+import os
+import sys
+import subprocess
+
+OUTPUT_FILE = "MLTT_2025_26_V5.ics"
+
+def ensure_requirements():
+    """Installe automatiquement les dépendances manquantes"""
+    try:
+        import requests
+        import bs4
+        import playwright
+    except ImportError:
+        print("[SETUP] Installation des dépendances manquantes...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "requests", "beautifulsoup4", "playwright"])
+        subprocess.check_call([sys.executable, "-m", "playwright", "install"])
+
+def clear_output_file():
+    """Vide le fichier de sortie"""
+    open(OUTPUT_FILE, "w", encoding="utf-8").close()
+    print(f"[SETUP] {OUTPUT_FILE} vidé.")
+
+# Exécution impérative au démarrage
+ensure_requirements()
+clear_output_file()
+
+# ===========================================
+# FIN DU BLOC IMPÉRATIF
+# Tout le reste peut être modifié librement
+# ===========================================
+
 import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-
-OUTPUT_FILE = "MLTT_2025_26_V5.ics"
 
 def fetch_teams():
     """Scrape la liste officielle des équipes depuis https://mltt.com/teams"""
@@ -23,7 +53,7 @@ def fetch_teams():
     return teams
 
 def fetch_matches():
-    """Scrape la page des matchs et récupère les équipes par attribut ALT des logos"""
+    """Scrape la page des matchs et récupère les équipes via ALT des logos"""
     url = "https://mltt.com/league/schedule"
     matches = []
     with sync_playwright() as p:
@@ -44,16 +74,13 @@ def fetch_matches():
     return matches
 
 if __name__ == "__main__":
-    # 1. vider le fichier dès le début
-    open(OUTPUT_FILE, "w", encoding="utf-8").close()
-
-    # 2. récupérer la liste des équipes
+    # 1. récupérer la liste des équipes
     all_teams = fetch_teams()
 
-    # 3. récupérer tous les matchs
+    # 2. récupérer tous les matchs
     matches = fetch_matches()
 
-    # 4. supprimer les doublons tout en conservant l'ordre
+    # 3. supprimer les doublons tout en conservant l'ordre
     seen, unique_matches = set(), []
     for t1, t2 in matches:
         key = (t1, t2)
@@ -61,7 +88,7 @@ if __name__ == "__main__":
             seen.add(key)
             unique_matches.append(key)
 
-    # 5. écrire le tout dans le fichier
+    # 4. écrire les équipes + matchs dans le fichier
     with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
         f.write("Équipes officielles MLTT :\n")
         for team in all_teams:

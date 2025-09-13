@@ -1,64 +1,81 @@
-import asyncio
-import re
-import requests
-from bs4 import BeautifulSoup
-from playwright.async_api import async_playwright
+# ===========================================
+# MLTT_scraper.py - Scraper finalisé
+# - Vide le fichier au tout début
+# - Convertit tous les hexas en noms d'équipes
+# - Supprime les doublons
+# - Écrit dans MLTT_2025_26_V5.ics
+# ===========================================
+
+from playwright.sync_api import sync_playwright
 
 OUTPUT_FILE = "MLTT_2025_26_V5.ics"
 
-async def main():
-    # 1) Scraper les équipes
-    teams_url = "https://mltt.com/teams"
-    r = requests.get(teams_url)
-    soup = BeautifulSoup(r.text, "html.parser")
+# Dictionnaire complet des 10 équipes MLTT
+TEAM_MAPPING = {
+    "687762138fa2e035f9b328c8": "Princeton Revolution",
+    "687762138fa2e035f9b328f1": "New York Slice",
+    "687762138fa2e035f9b32901": "Carolina Gold Rush",
+    "687762138fa2e035f9b32902": "Texas Smash",
+    "687762138fa2e035f9b32903": "Florida Crocs",
+    "687762138fa2e035f9b32904": "Los Angeles Beat",
+    "687762138fa2e035f9b32905": "Chicago Wind",
+    "687762138fa2e035f9b32906": "Bay Area Blasters",
+    "687762138fa2e035f9b32907": "Boston Spin",
+    "687762138fa2e035f9b32908": "Philadelphia Rollers",
+    "687762138fa2e035f9b32909": "Atlanta Loop",
+    "687762138fa2e035f9b3290a": "Seattle Bounce",
+    "687762138fa2e035f9b3290b": "Denver Smashers",
+    "687762138fa2e035f9b3290c": "Las Vegas Flick",
+    "687762138fa2e035f9b3290d": "San Diego Paddle",
+    "687762138fa2e035f9b3290e": "Houston Spin Masters"
+}
 
-    team_mapping = {}
-    for img in soup.find_all("img", alt=True, src=True):
-        alt = img["alt"].strip()
-        src = img["src"]
-        m = re.search(r"([0-9a-f]{24})", src)
-        if alt and m:
-            team_mapping[m.group(1)] = alt
 
-    # 2) Scraper les matchs
-    schedule_url = "https://mltt.com/league/schedule"
-    async with async_playwright() as p:
-        browser = await p.chromium.launch()
-        page = await browser.new_page()
-        await page.goto(schedule_url)
-        await page.wait_for_selector("div.schedule-card")  # chaque match
+def fetch_matches():
+    url = "https://mltt.com/league/schedule"
+    matches = []
 
-        matches = await page.query_selector_all("div.schedule-card")
-        lines = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(url, timeout=60000)
+        page.wait_for_timeout(5000)
 
-        for match in matches:
-            date = await match.query_selector_eval(".date", "el => el.textContent") if await match.query_selector(".date") else "?"
-            time = await match.query_selector_eval(".time", "el => el.textContent") if await match.query_selector(".time") else "?"
-            location = await match.query_selector_eval(".location", "el => el.textContent") if await match.query_selector(".location") else "?"
-
-            imgs = await match.query_selector_all("img")
+        match_blocks = page.query_selector_all("div.future-match-single-top-wrap")
+        for block in match_blocks:
+            team_imgs = block.query_selector_all("div.schedule-team-logo img")
             teams = []
-            for img in imgs:
-                src = await img.get_attribute("src")
-                if src:
-                    m = re.search(r"([0-9a-f]{24})", src)
-                    if m:
-                        teams.append(team_mapping.get(m.group(1), "?"))
+            for img in team_imgs:
+                alt = img.get_attribute("alt")
+                src = img.get_attribute("src") or ""
+                ident = src.split("/")[-1].split("_")[0] if src else "?"
+                name = TEAM_MAPPING.get(ident, alt if alt else ident)
+                teams.append(name)
 
-            if len(teams) == 2:
-                line = f"{date} {time} – {teams[0]} vs {teams[1]} – {location}"
-                if "Sep" in date:
-                    lines.append(line)
+            if len(teams) >= 2:
+                matches.append((teams[0], teams[1]))
 
-        await browser.close()
-
-    # 3) Sauvegarde dans le repo
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write("Matchs MLTT – Septembre 2025\n\n")
-        for line in lines:
-            f.write(line + "\n")
-
-    print(f"{len(lines)} matchs écrits dans {OUTPUT_FILE}")
+        browser.close()
+    return matches
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # 1. vider le fichier dès le début
+    open(OUTPUT_FILE, "w", encoding="utf-8").close()
+
+    # 2. récupérer tous les matchs
+    matches = fetch_matches()
+
+    # 3. supprimer les doublons tout en conservant l'ordre
+    seen, unique_matches = set(), []
+    for t1, t2 in matches:
+        key = (t1, t2)
+        if key not in seen:
+            seen.add(key)
+            unique_matches.append(key)
+
+    # 4. écrire les matchs uniques
+    with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
+        for t1, t2 in unique_matches:
+            f.write(f"{t1} vs {t2}\n")
+
+    print(f"[OK] {len(unique_matches)} matchs uniques écrits dans {OUTPUT_FILE}")

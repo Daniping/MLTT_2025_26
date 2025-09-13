@@ -78,4 +78,4 @@ if __name__ == "__main__":
         for t1, t2 in unique_matches:
             f.write(f"{t1} vs {t2}\n")
 
-    print(f"[OK] {len(unique_matches)} matchs uniques écrits dans {OUTPUT_FILE}")
+    print(f"[OK] {len(unique_matches)} matchs uniques écrits dans {OUTPUT_FILE}") 

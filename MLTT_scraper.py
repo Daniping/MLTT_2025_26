@@ -1,78 +1,81 @@
-import asyncio
-import uuid
-from datetime import datetime
-from playwright.async_api import async_playwright
+# ===========================================
+# MLTT_scraper.py - Scraper finalisé
+# - Vide le fichier au tout début
+# - Convertit tous les hexas en noms d'équipes
+# - Supprime les doublons
+# - Écrit dans MLTT_2025_26_V5.ics
+# ===========================================
 
-TEAMS_URL = "https://mltt.com/teams"
-SCHEDULE_URL = "https://mltt.com/league/schedule"
-ICS_FILE = "MLTT_2025_26_V5.ics"
+from playwright.sync_api import sync_playwright
 
-async def scrape():
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
+OUTPUT_FILE = "MLTT_2025_26_V5.ics"
 
-        # --- 1. Récupérer les équipes (logo -> nom)
-        await page.goto(TEAMS_URL, timeout=60000)
-        await page.wait_for_selector("img")
-        logos = await page.query_selector_all("img")
+# Dictionnaire complet des 10 équipes MLTT
+TEAM_MAPPING = {
+    "687762138fa2e035f9b328c8": "Princeton Revolution",
+    "687762138fa2e035f9b328f1": "New York Slice",
+    "687762138fa2e035f9b32901": "Carolina Gold Rush",
+    "687762138fa2e035f9b32902": "Texas Smash",
+    "687762138fa2e035f9b32903": "Florida Crocs",
+    "687762138fa2e035f9b32904": "Los Angeles Beat",
+    "687762138fa2e035f9b32905": "Chicago Wind",
+    "687762138fa2e035f9b32906": "Bay Area Blasters",
+    "687762138fa2e035f9b32907": "Boston Spin",
+    "687762138fa2e035f9b32908": "Philadelphia Rollers",
+    "687762138fa2e035f9b32909": "Atlanta Loop",
+    "687762138fa2e035f9b3290a": "Seattle Bounce",
+    "687762138fa2e035f9b3290b": "Denver Smashers",
+    "687762138fa2e035f9b3290c": "Las Vegas Flick",
+    "687762138fa2e035f9b3290d": "San Diego Paddle",
+    "687762138fa2e035f9b3290e": "Houston Spin Masters"
+}
 
-        logo_to_name = {}
-        for img in logos:
-            src = await img.get_attribute("src")
-            alt = await img.get_attribute("alt")
-            if src and alt:
-                if "PRIMARY" in src or "LOCKUP" in src:  # logos d'équipes
-                    key = src.split("/")[-1].split("_")[0]  # ex: 687762138fa2e035f9b328f1
-                    logo_to_name[key] = alt.strip()
 
-        print("Équipes trouvées :", logo_to_name)
+def fetch_matches():
+    url = "https://mltt.com/league/schedule"
+    matches = []
 
-        # --- 2. Récupérer les matchs
-        await page.goto(SCHEDULE_URL, timeout=60000)
-        await page.wait_for_selector(".future-match-single-top-wrap")
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(url, timeout=60000)
+        page.wait_for_timeout(5000)
 
-        matches = []
-        blocks = await page.query_selector_all(".future-match-single-top-wrap")
-        for block in blocks:
-            imgs = await block.query_selector_all("img.future-match-single-clab-logo")
-            if len(imgs) == 2:
-                team_keys = []
-                for img in imgs:
-                    src = await img.get_attribute("src")
-                    if src:
-                        team_keys.append(src.split("/")[-1].split("_")[0])
-                if len(team_keys) == 2:
-                    # Date et heure
-                    date_el = await block.query_selector("h3.future-match-game-title")
-                    date_txt = await date_el.inner_text() if date_el else None
-                    matches.append((team_keys[0], team_keys[1], date_txt))
+        match_blocks = page.query_selector_all("div.future-match-single-top-wrap")
+        for block in match_blocks:
+            team_imgs = block.query_selector_all("div.schedule-team-logo img")
+            teams = []
+            for img in team_imgs:
+                alt = img.get_attribute("alt")
+                src = img.get_attribute("src") or ""
+                ident = src.split("/")[-1].split("_")[0] if src else "?"
+                name = TEAM_MAPPING.get(ident, alt if alt else ident)
+                teams.append(name)
 
-        await browser.close()
+            if len(teams) >= 2:
+                matches.append((teams[0], teams[1]))
 
-        # --- 3. Écrire ICS
-        with open(ICS_FILE, "w", encoding="utf-8") as f:
-            f.write("BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//MLTT//Schedule 2025-26//EN\n")
-            for team1, team2, date_txt in matches:
-                name1 = logo_to_name.get(team1, team1)
-                name2 = logo_to_name.get(team2, team2)
-                summary = f"{name1} vs {name2}"
-
-                # UID unique
-                uid = f"{uuid.uuid4()}@mltt.com"
-
-                # Date ICS si dispo
-                dtstamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
-                dtstart = "20250901T000000Z"  # placeholder tant qu’on ne parse pas les vraies dates
-
-                f.write("BEGIN:VEVENT\n")
-                f.write(f"UID:{uid}\n")
-                f.write(f"DTSTAMP:{dtstamp}\n")
-                f.write(f"DTSTART:{dtstart}\n")
-                f.write(f"SUMMARY:{summary}\n")
-                f.write("END:VEVENT\n")
-
-            f.write("END:VCALENDAR\n")
+        browser.close()
+    return matches
 
 if __name__ == "__main__":
-    asyncio.run(scrape())
+    # 1. vider le fichier dès le début
+    open(OUTPUT_FILE, "w", encoding="utf-8").close()
+
+    # 2. récupérer tous les matchs
+    matches = fetch_matches()
+
+    # 3. supprimer les doublons tout en conservant l'ordre
+    seen, unique_matches = set(), []
+    for t1, t2 in matches:
+        key = (t1, t2)
+        if key not in seen:
+            seen.add(key)
+            unique_matches.append(key)
+
+    # 4. écrire les matchs uniques
+    with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
+        for t1, t2 in unique_matches:
+            f.write(f"{t1} vs {t2}\n")
+
+    print(f"[OK] {len(unique_matches)} matchs uniques écrits dans {OUTPUT_FILE}")

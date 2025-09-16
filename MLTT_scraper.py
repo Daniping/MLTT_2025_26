@@ -1,52 +1,51 @@
 # ===========================================
-# MLTT_teams_scraper.py - Extraction équipes
-# - Vide le fichier au début
-# - Récupère tous les couples (hexa, nom)
-# - Écrit dans MLTT_2025_26_V5.ics
+# MLTT_debug.py - Debug extraction
+# - Liste tous les <img> src et alt
+# - Liste tous les titres <h2> et <h3>
 # ===========================================
 
 from playwright.sync_api import sync_playwright
 
 OUTPUT_FILE = "MLTT_2025_26_V5.ics"
 
-def fetch_teams():
+def debug_page():
     url = "https://mltt.com/teams"
-    teams = []
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto(url, timeout=60000)
         page.wait_for_timeout(5000)
 
-        # Chaque bloc d'équipe contient un logo + un nom
-        blocks = page.query_selector_all("div.single-team-wrap")
-        for block in blocks:
-            img = block.query_selector("img")
-            name_el = block.query_selector("h2, h3, .team-title, .title")
+        imgs = page.query_selector_all("img")
+        titles = page.query_selector_all("h2, h3")
 
-            if not img or not name_el:
-                continue
+        results = []
 
-            src = img.get_attribute("src") or ""
-            ident = src.split("/")[-1].split("_")[0] if src else "?"
-            name = name_el.inner_text().strip()
+        results.append("=== IMAGES ===")
+        for img in imgs:
+            src = img.get_attribute("src")
+            alt = img.get_attribute("alt")
+            results.append(f"src={src} | alt={alt}")
 
-            teams.append((ident, name))
+        results.append("\n=== TITLES ===")
+        for t in titles:
+            txt = t.inner_text().strip()
+            results.append(txt)
 
         browser.close()
-    return teams
+    return results
 
 
 if __name__ == "__main__":
     # 1. vider le fichier dès le début
     open(OUTPUT_FILE, "w", encoding="utf-8").close()
 
-    # 2. récupérer toutes les équipes
-    teams = fetch_teams()
+    # 2. récupérer debug infos
+    data = debug_page()
 
-    # 3. écrire les couples hexa/nom
+    # 3. écrire dans le fichier
     with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
-        for ident, name in teams:
-            f.write(f"{ident} = {name}\n")
+        for line in data:
+            f.write(line + "\n")
 
-    print(f"[OK] {len(teams)} équipes écrites dans {OUTPUT_FILE}")
+    print(f"[OK] {len(data)} lignes écrites dans {OUTPUT_FILE}")
